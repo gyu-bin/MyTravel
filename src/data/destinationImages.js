@@ -1,0 +1,56 @@
+/** 여행지별 대표 사진 (Unsplash) */
+const IMAGES = {
+  안동: "https://images.unsplash.com/photo-1573413488318-94f37a19e985?w=1200&q=85&auto=format&fit=crop",
+  군산: "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=1200&q=85&auto=format&fit=crop",
+  문경: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&q=85&auto=format&fit=crop",
+  영덕: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&q=85&auto=format&fit=crop",
+  울진: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1200&q=85&auto=format&fit=crop",
+  삼척: "https://images.unsplash.com/photo-1439066615861-d1af74c6f4f7?w=1200&q=85&auto=format&fit=crop",
+  동해: "https://images.unsplash.com/photo-1519046904884-bdcd08f65d0d?w=1200&q=85&auto=format&fit=crop",
+  정선: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1200&q=85&auto=format&fit=crop",
+  태백: "https://images.unsplash.com/photo-1483728642387-6c3bdd7c5e6f?w=1200&q=85&auto=format&fit=crop",
+  인제: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1200&q=85&auto=format&fit=crop",
+  양양: "https://images.unsplash.com/photo-1502680390469-be75c86b556f?w=1200&q=85&auto=format&fit=crop",
+  홍천: "https://images.unsplash.com/photo-1518173946687-a4c036bcfb85?w=1200&q=85&auto=format&fit=crop",
+  단양: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1200&q=85&auto=format&fit=crop",
+  충주: "https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=1200&q=85&auto=format&fit=crop",
+  제천: "https://images.unsplash.com/photo-1475924156734-496f6f6e2bb4?w=1200&q=85&auto=format&fit=crop",
+  공주: "https://images.unsplash.com/photo-1590523277543-a94d2e247eb4?w=1200&q=85&auto=format&fit=crop",
+  보령: "https://images.unsplash.com/photo-1494525526620-91aef10942ad?w=1200&q=85&auto=format&fit=crop",
+  태안: "https://images.unsplash.com/photo-1473496161364-7a373642c7e0?w=1200&q=85&auto=format&fit=crop",
+  서산: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&q=85&auto=format&fit=crop",
+  부안: "https://images.unsplash.com/photo-1473496161364-7a373642c7e0?w=1200&q=85&auto=format&fit=crop",
+  고창: "https://images.unsplash.com/photo-1500382017468-90403fedc948?w=1200&q=85&auto=format&fit=crop",
+  순창: "https://images.unsplash.com/photo-1464226184884-fa80b87ee368?w=1200&q=85&auto=format&fit=crop",
+  보성: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1200&q=85&auto=format&fit=crop",
+  구례: "https://images.unsplash.com/photo-1448375240586-882707db999b?w=1200&q=85&auto=format&fit=crop",
+  하동: "https://images.unsplash.com/photo-1493246507136-91e8fad9978e?w=1200&q=85&auto=format&fit=crop",
+  합천: "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1200&q=85&auto=format&fit=crop",
+  거제: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=1200&q=85&auto=format&fit=crop",
+  통영: "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=1200&q=85&auto=format&fit=crop",
+  남해: "https://images.unsplash.com/photo-1505142468610-359e7d316be0?w=1200&q=85&auto=format&fit=crop",
+  완도: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1200&q=85&auto=format&fit=crop",
+  진도: "https://images.unsplash.com/photo-1505118389757-91f4f7032cf6?w=1200&q=85&auto=format&fit=crop",
+  고흥: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&q=85&auto=format&fit=crop",
+  강진: "https://images.unsplash.com/photo-1500382017468-90403fedc948?w=1200&q=85&auto=format&fit=crop",
+  장흥: "https://images.unsplash.com/photo-1500382017468-90403fedc948?w=1200&q=85&auto=format&fit=crop",
+  담양: "https://images.unsplash.com/photo-1518173946687-a4c036bcfb85?w=1200&q=85&auto=format&fit=crop",
+  무주: "https://images.unsplash.com/photo-1483728642387-6c3bdd7c5e6f?w=1200&q=85&auto=format&fit=crop",
+  임실: "https://images.unsplash.com/photo-1464226184884-fa80b87ee368?w=1200&q=85&auto=format&fit=crop",
+  익산: "https://images.unsplash.com/photo-1590523277543-a94d2e247eb4?w=1200&q=85&auto=format&fit=crop",
+  포천: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1200&q=85&auto=format&fit=crop",
+  양평: "https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=1200&q=85&auto=format&fit=crop",
+  파주: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1200&q=85&auto=format&fit=crop",
+  강화도: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&q=85&auto=format&fit=crop",
+  울릉도: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=1200&q=85&auto=format&fit=crop",
+  추자도: "https://images.unsplash.com/photo-1505118389757-91f4f7032cf6?w=1200&q=85&auto=format&fit=crop",
+  섬진강: "https://images.unsplash.com/photo-1448375240586-882707db999b?w=1200&q=85&auto=format&fit=crop",
+  순천만: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1200&q=85&auto=format&fit=crop",
+};
+
+const FALLBACK =
+  "https://images.unsplash.com/photo-1483685662797-1eac9c93bc5a?w=1200&q=85&auto=format&fit=crop";
+
+export function getDestinationImage(name) {
+  return IMAGES[name] || FALLBACK;
+}

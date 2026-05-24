@@ -1,9 +1,12 @@
 import { useState, useRef } from "react";
 import Intro from "./components/Intro";
+import PaymentGate from "./components/PaymentGate";
 import { questions } from "./data/questions";
 import { DESTINATIONS } from "./data/destinations";
+import { getDestinationImage } from "./data/destinationImages";
 import { scoreDestinations } from "./utils/scoreDestinations";
 import { fetchTravelPlan } from "./utils/fetchTravelPlan";
+import { PLAN_PRICE } from "./utils/payment";
 
 const RANK_LABELS = ["🥇 1위", "🥈 2위", "🥉 3위"];
 const RANK_CLASSES = ["dest-rank--1", "dest-rank--2", "dest-rank--3"];
@@ -116,10 +119,17 @@ export default function App() {
     }
   }
 
-  async function handleChooseDest(dest) {
+  function handleChooseDest(dest) {
     setChosenDest(dest);
+    setPlan(null);
+    setPlanError(null);
+    setPhase("payment");
+  }
+
+  async function handlePaymentComplete() {
+    if (!chosenDest) return;
     setPhase("plan");
-    await loadPlan(dest);
+    await loadPlan(chosenDest);
   }
 
   function handleRetryPlan() {
@@ -211,7 +221,8 @@ export default function App() {
             여행지를 찾았어요! 🎉
           </h2>
           <p className="result-desc">
-            숨은 국내 여행지 TOP 3 — 탭하면 AI 맞춤 플랜을 짜드려요
+            숨은 국내 여행지 TOP 3 — AI 맞춤 일정{" "}
+            <strong>{PLAN_PRICE.toLocaleString()}원</strong>
           </p>
           <div className="dest-list">
             {destinations.map((dest, i) => {
@@ -236,15 +247,18 @@ export default function App() {
                       <div className="dest-desc">{info.desc}</div>
                     </div>
                   </div>
-                  <span className={`dest-rank ${RANK_CLASSES[i]}`}>
-                    {RANK_LABELS[i]}
-                  </span>
+                  <div className="dest-card-badges">
+                    <span className={`dest-rank ${RANK_CLASSES[i]}`}>
+                      {RANK_LABELS[i]}
+                    </span>
+                    <span className="dest-price">AI {PLAN_PRICE.toLocaleString()}원</span>
+                  </div>
                 </div>
               );
             })}
           </div>
           <p className="result-hint">
-            원하는 여행지를 탭하면 AI 여행계획을 드려요
+            여행지를 선택하면 결제 후 AI 일정을 받을 수 있어요
           </p>
           <button type="button" className="btn-text-link" onClick={restart}>
             처음부터 다시하기
@@ -252,21 +266,36 @@ export default function App() {
         </div>
       )}
 
+      {phase === "payment" && chosenDest && (
+        <PaymentGate
+          destination={chosenDest}
+          onPaid={handlePaymentComplete}
+          onBack={() => setPhase("result")}
+        />
+      )}
+
       {phase === "plan" && (
         <div className="plan">
-          <div className="plan-hero">
-            <div className="plan-hero-emoji">
-              {DESTINATIONS[chosenDest]?.emoji || "🗺"}
+          <div
+            className="plan-hero plan-hero--photo"
+            style={{
+              backgroundImage: `url(${getDestinationImage(chosenDest)})`,
+            }}
+          >
+            <div className="plan-hero-overlay">
+              <span className="plan-hero-emoji">
+                {DESTINATIONS[chosenDest]?.emoji || "🗺"}
+              </span>
+              <h2 className="plan-hero-title">{chosenDest} 여행계획</h2>
+              {planLoading && !plan && (
+                <p className="plan-hero-reason">
+                  AI가 맞춤 여행계획을 작성 중이에요...
+                </p>
+              )}
+              {plan && (
+                <p className="plan-hero-reason">{plan.reason}</p>
+              )}
             </div>
-            <h2 className="plan-hero-title">{chosenDest} 여행계획</h2>
-            {plan && (
-              <p className="plan-hero-reason">{plan.reason}</p>
-            )}
-            {planLoading && !plan && (
-              <p className="plan-hero-reason">
-                AI가 맞춤 여행계획을 작성 중이에요...
-              </p>
-            )}
           </div>
 
           {planLoading && (

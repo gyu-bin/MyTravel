@@ -82,14 +82,23 @@ export default function Intro({ onStart }) {
             여행지가 어딜까?
           </h1>
           <p className="intro-subtitle">
-            12가지 질문으로 여행 스타일을 분석하고
+            12가지 질문으로 여행 스타일을 분석해요
             <br />
-            AI 맞춤 여행계획을 받아보세요
+            <span className="intro-subtitle-muted">
+              AI 맞춤 일정은 990원 · 퀴즈는 무료
+            </span>
           </p>
         </div>
       </div>
 
       <div className="intro-body">
+        <div className="intro-cta-wrap intro-cta-wrap--top">
+          <button type="button" onClick={onStart} className="intro-cta">
+            내 여행지 찾기 →
+          </button>
+          <p className="intro-cta-hint">약 2분 · 12문항 · 퀴즈 무료</p>
+        </div>
+
         <div className="intro-section">
           <div className="intro-section-label">숨은 여행지 미리보기</div>
           <div className="intro-cards">
@@ -165,13 +174,6 @@ export default function Intro({ onStart }) {
               ))}
             </div>
           </div>
-        </div>
-
-        <div className="intro-cta-wrap">
-          <button type="button" onClick={onStart} className="intro-cta">
-            내 여행지 찾기 →
-          </button>
-          <p className="intro-cta-hint">약 2분 소요 · 총 12문항 · 무료</p>
         </div>
       </div>
     </div>

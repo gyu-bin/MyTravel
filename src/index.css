@@ -257,9 +257,16 @@ body {
   animation: fadeUp 0.6s 0.4s both;
 }
 
+.intro-subtitle-muted {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.85em;
+  color: rgba(255, 255, 255, 0.4);
+}
+
 .intro-body {
   background: #f6f2ec;
-  padding-top: clamp(32px, 5vh, 56px);
+  padding-top: 0;
   padding-bottom: clamp(28px, 4vh, 48px);
 }
 
@@ -434,9 +441,20 @@ body {
   margin: 0 auto;
 }
 
+.intro-cta-wrap--top {
+  padding: clamp(20px, 3vh, 28px) var(--layout-pad) clamp(28px, 4vh, 36px);
+  margin-top: -28px;
+  position: relative;
+  z-index: 2;
+}
+
 @media (min-width: 768px) {
   .intro-cta-wrap {
     max-width: 480px;
+  }
+
+  .intro-cta-wrap--top {
+    margin-top: -36px;
   }
 }
 
@@ -808,13 +826,33 @@ body {
 
 .plan-hero {
   border-radius: clamp(18px, 2vw, 24px);
-  padding: clamp(32px, 4vw, 56px);
-  min-height: clamp(200px, 28vh, 320px);
+  overflow: hidden;
+  min-height: clamp(220px, 32vh, 360px);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   color: #fff;
   background: linear-gradient(135deg, #0d2e24, #1b7a56);
+}
+
+.plan-hero--photo {
+  background-size: cover;
+  background-position: center;
+  padding: 0;
+}
+
+.plan-hero-overlay {
+  padding: clamp(24px, 3vw, 40px);
+  background: linear-gradient(
+    to top,
+    rgba(8, 30, 22, 0.92) 0%,
+    rgba(8, 30, 22, 0.55) 55%,
+    rgba(8, 30, 22, 0.15) 100%
+  );
+  min-height: clamp(220px, 32vh, 360px);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
 }
 
 .plan-hero-emoji {
@@ -830,10 +868,163 @@ body {
 
 .plan-hero-reason {
   font-size: clamp(0.8125rem, 1.2vw, 1rem);
-  color: #9fcfba;
+  color: rgba(255, 255, 255, 0.88);
   margin-top: 12px;
   line-height: 1.7;
   max-width: 72ch;
+}
+
+.dest-card-badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.dest-price {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 20px;
+  background: #f0faf6;
+  color: #1b7a56;
+}
+
+@media (min-width: 768px) {
+  .dest-card-badges {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+/* ── Payment ── */
+.payment {
+  width: 100%;
+  max-width: var(--layout-max);
+  padding: clamp(20px, 3vh, 32px) var(--layout-pad);
+}
+
+.payment-back {
+  margin-bottom: 16px;
+}
+
+.payment-card {
+  background: #fff;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid #eae6e0;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+}
+
+.payment-photo {
+  height: clamp(180px, 28vh, 260px);
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.payment-photo-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  background: rgba(27, 122, 86, 0.9);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 20px;
+}
+
+.payment-body {
+  padding: clamp(20px, 3vw, 28px);
+}
+
+.payment-emoji {
+  font-size: 1.75rem;
+}
+
+.payment-title {
+  font-family: "Noto Serif KR", serif;
+  font-size: clamp(1.25rem, 2.5vw, 1.5rem);
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+.payment-desc {
+  font-size: 0.8125rem;
+  color: #888;
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+.payment-features {
+  margin: 16px 0;
+  padding-left: 18px;
+  font-size: 0.8125rem;
+  color: #555;
+  line-height: 1.7;
+}
+
+.payment-price {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 14px 0;
+  border-top: 1px solid #f0ede8;
+  border-bottom: 1px solid #f0ede8;
+  margin-bottom: 16px;
+}
+
+.payment-price-label {
+  font-size: 0.8125rem;
+  color: #999;
+}
+
+.payment-price-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1b7a56;
+}
+
+.payment-price-value small {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.payment-mock-note {
+  font-size: 0.75rem;
+  color: #c62828;
+  background: #fff8f8;
+  border: 1px solid #ffcdd2;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.payment-btn {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #0d2e24, #1b7a56);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(27, 122, 86, 0.3);
+}
+
+.payment-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.payment,
+.plan {
+  padding-left: var(--layout-pad);
+  padding-right: var(--layout-pad);
 }
 
 .plan-days {
