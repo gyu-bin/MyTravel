@@ -100,7 +100,9 @@ export default function App() {
     } catch (err) {
       if (err.message === "API_KEY_MISSING") {
         setPlanError(
-          "AI 여행 계획을 사용하려면 .env 파일에 VITE_OPENAI_API_KEY를 설정해주세요."
+          import.meta.env.PROD
+            ? "Vercel 대시보드 → Settings → Environment Variables에 VITE_OPENAI_API_KEY를 추가한 뒤 재배포해주세요."
+            : "프로젝트 루트 .env 파일에 VITE_OPENAI_API_KEY를 설정해주세요."
         );
       } else if (err.message?.startsWith("API_ERROR:")) {
         setPlanError(err.message.replace("API_ERROR: ", ""));
