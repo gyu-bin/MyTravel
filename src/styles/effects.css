@@ -391,8 +391,12 @@ body {
   border-color: #1b7a56;
 }
 
-.dest-card:hover .dest-card-photo {
-  transform: scale(1.05);
+.dest-card:hover .dest-card-carousel-photo {
+  transform: scale(1.02);
+}
+
+.dest-card-carousel-photo {
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .dest-card-photo-wrap {

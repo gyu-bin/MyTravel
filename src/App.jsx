@@ -359,14 +359,12 @@ export default function App() {
             {top3.map((dest, i) => {
               const info = DESTINATIONS[dest] || {};
               const isActive = hasPaid && activePlanIndex === i;
-              const rankClass =
-                i === 0 ? " dest-card--featured" : " dest-card--secondary";
               return (
                 <div
                   key={dest}
                   role={hasPaid ? "button" : undefined}
                   tabIndex={hasPaid ? 0 : undefined}
-                  className={`dest-card${rankClass}${i === 0 ? " top" : ""}${isActive ? " is-active" : ""}${hasPaid ? " dest-card--pickable" : ""}`}
+                  className={`dest-card${i === 0 ? " top" : ""}${isActive ? " is-active" : ""}${hasPaid ? " dest-card--pickable" : ""}`}
                   onClick={hasPaid ? () => handleSelectResultDest(i) : undefined}
                   onKeyDown={
                     hasPaid
@@ -378,10 +376,7 @@ export default function App() {
                       : undefined
                   }
                 >
-                  <DestCardGallery
-                    name={dest}
-                    variant={i === 0 ? "featured" : "secondary"}
-                  />
+                  <DestCardGallery name={dest} />
                   <div className="dest-card-body">
                     <div className="dest-card-top">
                       <span className="dest-emoji">{info.emoji}</span>

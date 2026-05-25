@@ -1,360 +1,243 @@
 /**
- * 여행지별 사진 — 위키백과·위키미디어(한국 실제 관광/지역) 썸네일
- * 출처: Wikipedia pageimages API (CC 라이선스 각 파일 참조)
+ * 여행지별 사진 — 위키백과·위키미디어(한국 관광 풍경) 썸네일 1280px
+ * 출처: Wikimedia Commons (CC, 파일별 라이선스 참조)
+ * 갱신: node scripts/rebuild-scenic-images.mjs && node scripts/patch-scenic-fallbacks.mjs && node scripts/apply-scenic-gallery.mjs
  */
 
 const W = (path) =>
   `https://upload.wikimedia.org/wikipedia/commons/thumb/${path}`;
 
-/** SVG·깃발 등 비관광 이미지 대체 */
-const OVERRIDES = {
-  영덕: W(
-    "7/7e/Korea-Yeongdeok_County-Mountain-01.jpg/960px-Korea-Yeongdeok_County-Mountain-01.jpg",
-  ),
-  울진: W(
-    "e/e4/Korea_Route7_01_%2816696038086%29.jpg/960px-Korea_Route7_01_%2816696038086%29.jpg",
-  ),
-  인제: W("3/32/Inje_Univ._Station.jpg/960px-Inje_Univ._Station.jpg"),
-  구례: W(
-    "d/d2/Korea-Gurye-Hwaeomsa_4982-06.JPG/960px-Korea-Gurye-Hwaeomsa_4982-06.JPG",
-  ),
-  하동: W(
-    "f/f7/Korea-Hadong-Hwagae.jangteo-Market-01.jpg/960px-Korea-Hadong-Hwagae.jangteo-Market-01.jpg",
-  ),
-  남해: W(
-    "9/95/Korea-Namhae-German_Village-Bossam-01.jpg/960px-Korea-Namhae-German_Village-Bossam-01.jpg",
-  ),
-  강진: W(
-    "3/3b/KORAIL_Gangjin_Gun_33_%2817095832698%29.jpg/960px-KORAIL_Gangjin_Gun_33_%2817095832698%29.jpg",
-  ),
-  진도: W("8/8d/Jindo_Bridge.jpg/960px-Jindo_Bridge.jpg"),
-  추자도: W("e/e5/Jeju_Olle_Route_18-1.jpg/960px-Jeju_Olle_Route_18-1.jpg"),
-  순천만: W(
-    "6/68/Panorama_of_Reed_fields_in_Suncheon_bay.jpg/960px-Panorama_of_Reed_fields_in_Suncheon_bay.jpg",
-  ),
-  문경: W("d/d2/Saejae_third_gate_backside.jpg/960px-Saejae_third_gate_backside.jpg"),
-};
-
 const IMAGES = {
-  안동:
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/A_bird%27s_eye_view_of_the_Hahoe_Folk_Village_%284458648859%29.jpg/960px-A_bird%27s_eye_view_of_the_Hahoe_Folk_Village_%284458648859%29.jpg",
-  군산:
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/%EB%8C%80%EC%95%BC%EC%97%AD.jpg/960px-%EB%8C%80%EC%95%BC%EC%97%AD.jpg",
-  문경: OVERRIDES.문경,
-  영덕: OVERRIDES.영덕,
-  울진: OVERRIDES.울진,
-  삼척: W("5/56/Korea-Samcheok-Beach-01.jpg/960px-Korea-Samcheok-Beach-01.jpg"),
-  동해: W("5/59/Samhwasa_and_murung_velley.jpg/960px-Samhwasa_and_murung_velley.jpg"),
-  정선: W(
-    "7/76/Korea_Jeongseon_Traditional_Market_Train_26_%2814202094128%29.jpg/960px-Korea_Jeongseon_Traditional_Market_Train_26_%2814202094128%29.jpg",
-  ),
-  태백: W("0/03/Taebaek_3.JPG/960px-Taebaek_3.JPG"),
-  인제: OVERRIDES.인제,
-  양양: W("1/1a/Naksan_Temple.jpg/960px-Naksan_Temple.jpg"),
-  홍천: W("c/c3/Hongcheon-gun_office.JPG/960px-Hongcheon-gun_office.JPG"),
-  단양: W("f/ff/Korea-Danyang-Dodamsambong_3087-07.JPG/960px-Korea-Danyang-Dodamsambong_3087-07.JPG"),
-  충주: W("7/7d/Chungjuho_Lake.jpg/960px-Chungjuho_Lake.jpg"),
-  제천: W(
-    "5/5f/Korea-Jecheon-Cheongpung_Cultural_Properties_Center_3300-07.JPG/960px-Korea-Jecheon-Cheongpung_Cultural_Properties_Center_3300-07.JPG",
-  ),
-  공주: W(
-    "6/6b/Korea-Gongju-Gongsanseong-01.jpg/960px-Korea-Gongju-Gongsanseong-01.jpg",
-  ),
-  보령:
-    "https://upload.wikimedia.org/wikipedia/commons/d/d8/Korea-Boryeong-Daecheon_Beach-01.jpg",
-  태안: W("2/21/Taean-gun_office.JPG/960px-Taean-gun_office.JPG"),
-  서산: W("f/f6/Seosan_montage.jpg/960px-Seosan_montage.jpg"),
-  부안: W(
-    "f/f4/Korea-Buan_County-Naesosa-Daungbojeon-02.jpg/960px-Korea-Buan_County-Naesosa-Daungbojeon-02.jpg",
-  ),
-  고창: W(
-    "2/2c/.%EB%AC%B4%EC%9E%A5%EC%9D%8D%EC%84%B1%EC%9D%98_%EC%95%84%EB%A6%84%EB%8B%A4%EC%9B%80.jpg/960px-.%EB%AC%B4%EC%9E%A5%EC%9D%8D%EC%84%B1%EC%9D%98_%EC%95%84%EB%A6%84%EB%8B%A4%EC%9B%80.jpg",
-  ),
-  순창: W(
-    "a/a8/The_Artifact_Site_of_Mrs._Seol_and_Shin_Gyeong-jun.JPG/960px-The_Artifact_Site_of_Mrs._Seol_and_Shin_Gyeong-jun.JPG",
-  ),
-  보성: W("8/82/Korea-Boseong-Green.tea-02.jpg/960px-Korea-Boseong-Green.tea-02.jpg"),
-  구례: OVERRIDES.구례,
-  하동: OVERRIDES.하동,
-  합천: W("b/b1/Korea-Haeinsa-12.jpg/960px-Korea-Haeinsa-12.jpg"),
-  거제: W("5/57/Geoje_Island%2C_South_Korea_%281%29.jpg/960px-Geoje_Island%2C_South_Korea_%281%29.jpg"),
-  통영: W("7/7f/Korea-Tongyeong-Collage-01.jpg/960px-Korea-Tongyeong-Collage-01.jpg"),
-  남해: OVERRIDES.남해,
-  완도: W("2/26/Wandogun.jpg/960px-Wandogun.jpg"),
-  진도: OVERRIDES.진도,
-  고흥: W("1/11/Geogum_Bridge.JPG/960px-Geogum_Bridge.JPG"),
-  강진: OVERRIDES.강진,
-  장흥: W("2/2f/Jangheung_Chendo_Chapel_17-10389.jpg/960px-Jangheung_Chendo_Chapel_17-10389.jpg"),
-  담양: W(
-    "e/ea/Korea-Damyang-Hanok_in_the_Bamboo_Forest-01.jpg/960px-Korea-Damyang-Hanok_in_the_Bamboo_Forest-01.jpg",
-  ),
-  무주: W("3/31/Mujugun_County_44_%2816237755594%29.jpg/960px-Mujugun_County_44_%2816237755594%29.jpg"),
-  임실:
-    "https://upload.wikimedia.org/wikipedia/commons/b/b0/Imsil_Hyanggyo.jpg",
-  익산: W("f/f4/Iksan_-_Young_Deung_Dong.jpg/960px-Iksan_-_Young_Deung_Dong.jpg"),
-  포천: W(
-    "4/46/Korea-Pocheon-Herb_Island-Sunflower_an_others-01.jpg/960px-Korea-Pocheon-Herb_Island-Sunflower_an_others-01.jpg",
-  ),
-  양평: W("2/2e/Namhan_River_03.jpg/960px-Namhan_River_03.jpg"),
-  파주: W("4/4c/ImjingangRailroad.jpg/960px-ImjingangRailroad.jpg"),
-  강화도:
-    "https://upload.wikimedia.org/wikipedia/commons/0/07/Ganghwa1.jpg",
-  울릉도:
-    "https://upload.wikimedia.org/wikipedia/commons/6/6d/Ulleung_island_from_above.jpg",
-  추자도: OVERRIDES.추자도,
-  섬진강: W("1/16/Seomjingang_MS3672.JPG/960px-Seomjingang_MS3672.JPG"),
-  순천만: OVERRIDES.순천만,
+  안동: W("1/1f/A_bird%27s_eye_view_of_the_Hahoe_Folk_Village_%284458648859%29.jpg/1280px-A_bird%27s_eye_view_of_the_Hahoe_Folk_Village_%284458648859%29.jpg"),
+  군산: W("0/0d/Korea_Seonyudo_Summer_20140805_18_%2814862141903%29.jpg/1280px-Korea_Seonyudo_Summer_20140805_18_%2814862141903%29.jpg"),
+  문경: W("d/d2/Saejae_third_gate_backside.jpg/1280px-Saejae_third_gate_backside.jpg"),
+  영덕: W("7/7e/Korea-Yeongdeok_County-Mountain-01.jpg/1280px-Korea-Yeongdeok_County-Mountain-01.jpg"),
+  울진: W("e/e4/Korea_Route7_01_%2816696038086%29.jpg/1280px-Korea_Route7_01_%2816696038086%29.jpg"),
+  삼척: W("6/6b/Korea-Samcheok-Rural_scenery_in_spring-01.jpg/1280px-Korea-Samcheok-Rural_scenery_in_spring-01.jpg"),
+  동해: W("5/59/Samhwasa_and_murung_velley.jpg/1280px-Samhwasa_and_murung_velley.jpg"),
+  정선: W("7/76/Korea_Jeongseon_Traditional_Market_Train_26_%2814202094128%29.jpg/1280px-Korea_Jeongseon_Traditional_Market_Train_26_%2814202094128%29.jpg"),
+  태백: W("4/4b/Taebaeksan_main_peaks_from_Munsubong.jpg/1280px-Taebaeksan_main_peaks_from_Munsubong.jpg"),
+  인제: W("9/9d/Gangwon-do_gombaeryeong.jpg/1280px-Gangwon-do_gombaeryeong.jpg"),
+  양양: W("5/5c/Gangwon_coast.JPG/1280px-Gangwon_coast.JPG"),
+  홍천: W("f/f9/Hongcheon_IMG_2530.JPG/1280px-Hongcheon_IMG_2530.JPG"),
+  단양: W("f/ff/Korea-Danyang-Dodamsambong_3087-07.JPG/1280px-Korea-Danyang-Dodamsambong_3087-07.JPG"),
+  충주: W("5/5a/Korea-Chungju-Mountain-01.jpg/1280px-Korea-Chungju-Mountain-01.jpg"),
+  제천: W("1/1d/Korea-Jecheon-Cheongpung_Cultural_Properties_Center_Dohwa-ri_House_3245-07.JPG/1280px-Korea-Jecheon-Cheongpung_Cultural_Properties_Center_Dohwa-ri_House_3245-07.JPG"),
+  공주: W("6/6b/Korea-Gongju-Gongsanseong-01.jpg/1280px-Korea-Gongju-Gongsanseong-01.jpg"),
+  보령: W("b/b8/Korea-Boreyong-Daecheon_Beach-09.jpg/1280px-Korea-Boreyong-Daecheon_Beach-09.jpg"),
+  태안: W("4/44/Standing_Buddha_Triad_Carved_on_the_Rock_in_Donmun-ri%2C_Taean_03.JPG/1280px-Standing_Buddha_Triad_Carved_on_the_Rock_in_Donmun-ri%2C_Taean_03.JPG"),
+  서산: W("0/01/%EC%84%9C%EC%82%B0%EC%8B%9C_%EC%A0%84%EA%B2%BD.jpg/1280px-%EC%84%9C%EC%82%B0%EC%8B%9C_%EC%A0%84%EA%B2%BD.jpg"),
+  부안: W("e/e5/Korea-Buan_County-Sunset_from_Naesosa-01.jpg/1280px-Korea-Buan_County-Sunset_from_Naesosa-01.jpg"),
+  고창: W("8/84/Korea-Hwasun_Dolmen_sites02.jpg/1280px-Korea-Hwasun_Dolmen_sites02.jpg"),
+  순창: W("1/17/Seonunsa_Temple%2C_South_Korea.jpg/1280px-Seonunsa_Temple%2C_South_Korea.jpg"),
+  보성: W("b/b7/Korea-Boseong-Green.tea-04.jpg/1280px-Korea-Boseong-Green.tea-04.jpg"),
+  구례: W("d/d2/Korea-Gurye-Hwaeomsa_4982-06.JPG/1280px-Korea-Gurye-Hwaeomsa_4982-06.JPG"),
+  하동: W("f/f7/Korea-Hadong-Hwagae.jangteo-Market-01.jpg/1280px-Korea-Hadong-Hwagae.jangteo-Market-01.jpg"),
+  합천: W("9/92/Haeinsa_Temple_11.jpg/1280px-Haeinsa_Temple_11.jpg"),
+  거제: W("1/12/Korea-Geoje-Gohyeon_Castle-02.jpg/1280px-Korea-Geoje-Gohyeon_Castle-02.jpg"),
+  통영: W("d/d9/Korea-Tongyeong-Cityscape-01.jpg/1280px-Korea-Tongyeong-Cityscape-01.jpg"),
+  남해: W("9/95/Korea-Namhae-German_Village-Bossam-01.jpg/1280px-Korea-Namhae-German_Village-Bossam-01.jpg"),
+  완도: W("1/1e/Sinji_Bridge.JPG/1280px-Sinji_Bridge.JPG"),
+  진도: W("8/8d/Jindo_Bridge.jpg/1280px-Jindo_Bridge.jpg"),
+  고흥: W("9/91/Korea_-_Goheung-gun_-_Narado_Beach_panorama.jpg/1280px-Korea_-_Goheung-gun_-_Narado_Beach_panorama.jpg"),
+  강진: W("3/3b/KORAIL_Gangjin_Gun_33_%2817095832698%29.jpg/1280px-KORAIL_Gangjin_Gun_33_%2817095832698%29.jpg"),
+  장흥: W("5/51/Korea-Jangheung-Jeungsanji-01.jpg/1280px-Korea-Jangheung-Jeungsanji-01.jpg"),
+  담양: W("7/7d/Korea-Damyang-Yeongsan_River_at_Sunset-01.jpg/1280px-Korea-Damyang-Yeongsan_River_at_Sunset-01.jpg"),
+  무주: W("a/a1/Deogyusan_from_Hyangjeok_Peak.jpg/1280px-Deogyusan_from_Hyangjeok_Peak.jpg"),
+  임실: W("b/b0/Imsil_Hyanggyo.jpg/1280px-Imsil_Hyanggyo.jpg"),
+  익산: W("7/71/Mireuksa%2C_Iksan_2015.jpg/1280px-Mireuksa%2C_Iksan_2015.jpg"),
+  포천: W("4/46/Korea-Pocheon-Herb_Island-Sunflower_an_others-01.jpg/1280px-Korea-Pocheon-Herb_Island-Sunflower_an_others-01.jpg"),
+  양평: W("4/42/Jungang_Line_Yangsu_Bridge_and_Old_Jungang_Line_Bukhan_River_Bridge.JPG/1280px-Jungang_Line_Yangsu_Bridge_and_Old_Jungang_Line_Bukhan_River_Bridge.JPG"),
+  파주: W("6/67/Heyri_Artvalley_12_%2831970591991%29.jpg/1280px-Heyri_Artvalley_12_%2831970591991%29.jpg"),
+  강화도: W("8/89/Jonghae-ru%2C_the_gate_of_Jeongjogsanseong_at_Ganghwa-do.jpg/1280px-Jonghae-ru%2C_the_gate_of_Jeongjogsanseong_at_Ganghwa-do.jpg"),
+  울릉도: W("8/8c/Ulleung-30km.jpg/1280px-Ulleung-30km.jpg"),
+  추자도: W("e/e5/Jeju_Olle_Route_18-1.jpg/1280px-Jeju_Olle_Route_18-1.jpg"),
+  섬진강: W("1/16/Seomjingang_MS3672.JPG/1280px-Seomjingang_MS3672.JPG"),
+  순천만: W("6/68/Panorama_of_Reed_fields_in_Suncheon_bay.jpg/1280px-Panorama_of_Reed_fields_in_Suncheon_bay.jpg"),
 };
 
-/** 지역별 추가 사진 — 다른 여행지 URL 사용 금지 */
 const GALLERY_EXTRA = {
   안동: [
-    W("6/6d/Korea-Andong_Hahoe_Folk_Village_cropped.jpg/960px-Korea-Andong_Hahoe_Folk_Village_cropped.jpg"),
-    W("c/c9/Bronze_bell_at_Gwangheungsa_temple_in_Andong%2C_Korea_03.JPG/960px-Bronze_bell_at_Gwangheungsa_temple_in_Andong%2C_Korea_03.JPG"),
-    W("4/46/Bronze_bell_at_Gwangheungsa_temple_in_Andong%2C_Korea_02.jpg/960px-Bronze_bell_at_Gwangheungsa_temple_in_Andong%2C_Korea_02.jpg"),
+    W("5/56/Korea-Andong-Hahoe_Folk_Village-22.jpg/1280px-Korea-Andong-Hahoe_Folk_Village-22.jpg"),
+    W("5/5d/Hahoe_Folk_Village_05.jpg/1280px-Hahoe_Folk_Village_05.jpg"),
   ],
   군산: [
-    W("f/f2/Gunsan_city_2.jpg/960px-Gunsan_city_2.jpg"),
-    W("5/55/Gunsanhistorym.jpg/960px-Gunsanhistorym.jpg"),
-    W("6/6a/Entrance_of_Gunsan_Modern_History_Museum.jpg/960px-Entrance_of_Gunsan_Modern_History_Museum.jpg"),
+    W("1/1b/Korea_Seonyudo_Summer_20140805_10_%2814862140773%29.jpg/1280px-Korea_Seonyudo_Summer_20140805_10_%2814862140773%29.jpg"),
+    W("3/38/Korea_Seonyudo_Summer_20140805_08_%2814841920672%29.jpg/1280px-Korea_Seonyudo_Summer_20140805_08_%2814841920672%29.jpg"),
+    W("5/54/Seonyu_island.JPG/1280px-Seonyu_island.JPG"),
   ],
   문경: [
-    W("3/38/Mungyeong_birches_2.jpg/960px-Mungyeong_birches_2.jpg"),
-    W("9/9e/Mungyeong_grave.jpg/960px-Mungyeong_grave.jpg"),
-    W("4/45/Saejae_Bubong.jpg/960px-Saejae_Bubong.jpg"),
+    W("3/38/Mungyeong_birches_2.jpg/1280px-Mungyeong_birches_2.jpg"),
+    W("4/45/Saejae_Bubong.jpg/1280px-Saejae_Bubong.jpg"),
   ],
   영덕: [
-    W("7/7e/Korea-Yeongdeok_County-Mountain-01.jpg/960px-Korea-Yeongdeok_County-Mountain-01.jpg"),
-    W("5/5b/%EC%98%81%EB%8D%95_%EB%8C%80%EA%B2%8C.jpg/960px-%EC%98%81%EB%8D%95_%EB%8C%80%EA%B2%8C.jpg"),
-    W("5/56/Korea-Samcheok-Beach-01.jpg/960px-Korea-Samcheok-Beach-01.jpg"),
+    W("5/5b/%EC%98%81%EB%8D%95_%EB%8C%80%EA%B2%8C.jpg/1280px-%EC%98%81%EB%8D%95_%EB%8C%80%EA%B2%8C.jpg"),
+    W("5/56/Korea-Samcheok-Beach-01.jpg/1280px-Korea-Samcheok-Beach-01.jpg"),
   ],
   울진: [
-    W("e/e4/Korea_Route7_01_%2816696038086%29.jpg/960px-Korea_Route7_01_%2816696038086%29.jpg"),
-    W("d/d8/Korea_Route7_02_%2816514656327%29.jpg/960px-Korea_Route7_02_%2816514656327%29.jpg"),
-    W("f/fb/Typhoon_Saomai_%282000%29_in_Uljin_%283%29.jpg/960px-Typhoon_Saomai_%282000%29_in_Uljin_%283%29.jpg"),
+    W("d/d8/Korea_Route7_02_%2816514656327%29.jpg/1280px-Korea_Route7_02_%2816514656327%29.jpg"),
   ],
   삼척: [
-    W("6/6b/Korea-Samcheok-Rural_scenery_in_spring-01.jpg/960px-Korea-Samcheok-Rural_scenery_in_spring-01.jpg"),
-    W("5/56/Korea-Samcheok-Beach-01.jpg/960px-Korea-Samcheok-Beach-01.jpg"),
-    W("2/26/Korea-Samcheok-Neowajip-Shingled_house-01.jpg/960px-Korea-Samcheok-Neowajip-Shingled_house-01.jpg"),
+    W("5/56/Korea-Samcheok-Beach-01.jpg/1280px-Korea-Samcheok-Beach-01.jpg"),
+    W("6/6b/Korea-Samcheok-Rural_scenery_in_spring-01.jpg/1280px-Korea-Samcheok-Rural_scenery_in_spring-01.jpg"),
   ],
   동해: [
-    W("5/57/Korail_Donghae_Station_Panel.jpg/960px-Korail_Donghae_Station_Panel.jpg"),
-    W("0/01/Donghae_station.JPG/960px-Donghae_station.JPG"),
-    W("6/60/Samhwasa_%282%29.jpg/960px-Samhwasa_%282%29.jpg"),
-  ],
-  정선: [
-    W("5/57/Korea-Jeongseon-Boiled_octopus_at_a_market-01.jpg/960px-Korea-Jeongseon-Boiled_octopus_at_a_market-01.jpg"),
-    W("4/40/Korea-Jeongseon-Making_Korean_pancakes_%28jeon%29_at_a_market-01.jpg/960px-Korea-Jeongseon-Making_Korean_pancakes_%28jeon%29_at_a_market-01.jpg"),
-    W("2/24/Korea-Jeongseon-Various_Korean_pancakes_%28jeon%29-01.jpg/960px-Korea-Jeongseon-Various_Korean_pancakes_%28jeon%29-01.jpg"),
+    W("6/60/Samhwasa_%282%29.jpg/1280px-Samhwasa_%282%29.jpg"),
   ],
   태백: [
-    W("1/18/Korail_Taebaek_Triangle_Line2.jpg/960px-Korail_Taebaek_Triangle_Line2.jpg"),
-    W("f/fe/Town_at_the_Foot_of_the_Mountain.jpg/960px-Town_at_the_Foot_of_the_Mountain.jpg"),
-    W("5/5e/Taebaek_Winter_Festival.jpg/960px-Taebaek_Winter_Festival.jpg"),
+    W("1/18/Korail_Taebaek_Triangle_Line2.jpg/1280px-Korail_Taebaek_Triangle_Line2.jpg"),
+    W("f/fe/Town_at_the_Foot_of_the_Mountain.jpg/1280px-Town_at_the_Foot_of_the_Mountain.jpg"),
+    W("5/5e/Taebaek_Winter_Festival.jpg/1280px-Taebaek_Winter_Festival.jpg"),
   ],
   인제: [
-    W("3/32/Inje_Univ._Station.jpg/960px-Inje_Univ._Station.jpg"),
-    W("b/b8/Inje_Speedium_Racing_Team.JPG/960px-Inje_Speedium_Racing_Team.JPG"),
-    W("1/17/Baek_Inje_House_backyard.jpg/960px-Baek_Inje_House_backyard.jpg"),
+    W("a/a1/Gombaeryeong.jpg/1280px-Gombaeryeong.jpg"),
+    W("0/0b/20150629_At_the_Top_of_Misiryeong_Ridge.jpg/1280px-20150629_At_the_Top_of_Misiryeong_Ridge.jpg"),
   ],
   양양: [
-    W("a/a5/Korea-Naksansa_2215-07_grounds.JPG/960px-Korea-Naksansa_2215-07_grounds.JPG"),
-    W("1/1a/Naksan_Temple.jpg/960px-Naksan_Temple.jpg"),
-  ],
-  홍천: [
-    W("f/f9/Hongcheon_IMG_2530.JPG/960px-Hongcheon_IMG_2530.JPG"),
-    W("4/4a/Jungang_Expwy_Busan_Dir_in_Chuncheon-Hongcheon_Border.jpg/960px-Jungang_Expwy_Busan_Dir_in_Chuncheon-Hongcheon_Border.jpg"),
-    W("5/55/Jungang_Expwy_Gulji_TN-Hongcheon_IC%28Busan_Dir%29_1.jpg/960px-Jungang_Expwy_Gulji_TN-Hongcheon_IC%28Busan_Dir%29_1.jpg"),
+    W("1/17/Naksan_temple%2C_%EB%82%99%EC%82%B0%EC%82%AC%2C_Gangwon-do_temple.jpg/1280px-Naksan_temple%2C_%EB%82%99%EC%82%B0%EC%82%AC%2C_Gangwon-do_temple.jpg"),
+    W("0/04/Naksansa%2C_naksan_temple_uisangdae%2C_%EB%82%99%EC%82%B0%EC%82%AC_%EC%9D%98%EC%83%81%EB%8C%80.jpg/1280px-Naksansa%2C_naksan_temple_uisangdae%2C_%EB%82%99%EC%82%B0%EC%82%AC_%EC%9D%98%EC%83%81%EB%8C%80.jpg"),
+    W("6/69/%EB%82%99%EC%82%B0%EC%82%AC_naksan_temple.jpg/1280px-%EB%82%99%EC%82%B0%EC%82%AC_naksan_temple.jpg"),
   ],
   단양: [
-    W("f/fb/Korea-Danyang_Falls_3065-07.JPG/960px-Korea-Danyang_Falls_3065-07.JPG"),
-    W("b/b2/Korea-Danyang_Bridge_3067-07.JPG/960px-Korea-Danyang_Bridge_3067-07.JPG"),
-    W("1/17/Korea-Danyang_Bridge_3071-07.JPG/960px-Korea-Danyang_Bridge_3071-07.JPG"),
+    W("f/fb/Korea-Danyang_Falls_3065-07.JPG/1280px-Korea-Danyang_Falls_3065-07.JPG"),
+    W("b/b2/Korea-Danyang_Bridge_3067-07.JPG/1280px-Korea-Danyang_Bridge_3067-07.JPG"),
+    W("1/17/Korea-Danyang_Bridge_3071-07.JPG/1280px-Korea-Danyang_Bridge_3071-07.JPG"),
   ],
   충주: [
-    W("9/93/Chungjuho_Lake_and_Woraksan.jpg/960px-Chungjuho_Lake_and_Woraksan.jpg"),
-    W("5/5a/Korea-Chungju-Mountain-01.jpg/960px-Korea-Chungju-Mountain-01.jpg"),
-    W("1/10/Korea-Chungju-Road-01.jpg/960px-Korea-Chungju-Road-01.jpg"),
+    W("9/93/Chungjuho_Lake_and_Woraksan.jpg/1280px-Chungjuho_Lake_and_Woraksan.jpg"),
+    W("1/10/Korea-Chungju-Road-01.jpg/1280px-Korea-Chungju-Road-01.jpg"),
   ],
   제천: [
-    W(
-      "8/81/Korea-Jecheon-SBS_Jecheon_setting_3329-07.JPG/960px-Korea-Jecheon-SBS_Jecheon_setting_3329-07.JPG",
-    ),
-    W(
-      "e/e6/Korea-Jecheon-Cheongpung_Cultural_Properties_Center_Hanbyeong-nu_3311-07.JPG/960px-Korea-Jecheon-Cheongpung_Cultural_Properties_Center_Hanbyeong-nu_3311-07.JPG",
-    ),
-    W("1/1d/Korea-Jecheon-Cheongpung_Cultural_Properties_Center_Dohwa-ri_House_3245-07.JPG/960px-Korea-Jecheon-Cheongpung_Cultural_Properties_Center_Dohwa-ri_House_3245-07.JPG"),
+    W("3/37/Korea-Jecheon-Cheongpung_Cultural_Properties_Center_3250-07.JPG/1280px-Korea-Jecheon-Cheongpung_Cultural_Properties_Center_3250-07.JPG"),
+    W("d/d7/Korea-Jecheon-Cheongpung_Cultural_Properties_Center_3252-07.JPG/1280px-Korea-Jecheon-Cheongpung_Cultural_Properties_Center_3252-07.JPG"),
   ],
   공주: [
-    W("5/5d/View_of_Gongju_01.jpg/960px-View_of_Gongju_01.jpg"),
-    W("1/1e/View_of_Gongju_02.jpg/960px-View_of_Gongju_02.jpg"),
-    W(
-      "9/90/Pavilion_in_Gongsanseong_Fortress.jpg/960px-Pavilion_in_Gongsanseong_Fortress.jpg",
-    ),
+    W("e/e9/Korea-Gongju-Gongsanseong-03.jpg/1280px-Korea-Gongju-Gongsanseong-03.jpg"),
+    W("5/5e/Korea-Gongju-Gongsanseong-04.jpg/1280px-Korea-Gongju-Gongsanseong-04.jpg"),
+    W("1/1e/View_of_Gongju_02.jpg/1280px-View_of_Gongju_02.jpg"),
   ],
   보령: [
-    W("a/aa/Korea-Boryeong_Mud_Festival-01.jpg/960px-Korea-Boryeong_Mud_Festival-01.jpg"),
-    W("3/3a/Korea-Boryeong_Mud_Festival-29.jpg/960px-Korea-Boryeong_Mud_Festival-29.jpg"),
-    W("5/57/Korea-Boryeong_Mud_Festival-35.jpg/960px-Korea-Boryeong_Mud_Festival-35.jpg"),
+    W("6/60/Korea-Boreyong-Daecheon_Beach-01.jpg/1280px-Korea-Boreyong-Daecheon_Beach-01.jpg"),
+    W("f/fd/Korea-Boreyong-Daecheon_Beach-02.jpg/1280px-Korea-Boreyong-Daecheon_Beach-02.jpg"),
+    W("6/6a/Korea-Boreyong-Daecheon_Beach-03.jpg/1280px-Korea-Boreyong-Daecheon_Beach-03.jpg"),
   ],
   태안: [
-    W("4/44/Standing_Buddha_Triad_Carved_on_the_Rock_in_Donmun-ri%2C_Taean_03.JPG/960px-Standing_Buddha_Triad_Carved_on_the_Rock_in_Donmun-ri%2C_Taean_03.JPG"),
-    W("7/7c/Standing_Buddha_Triad_Carved_on_the_Rock_in_Donmun-ri%2C_Taean_06.JPG/960px-Standing_Buddha_Triad_Carved_on_the_Rock_in_Donmun-ri%2C_Taean_06.JPG"),
-    W("c/c0/Standing_Rock-carved_Buddha_Triad_at_Donmun-ri_in_Taean%2C_Korea.jpg/960px-Standing_Rock-carved_Buddha_Triad_at_Donmun-ri_in_Taean%2C_Korea.jpg"),
-  ],
-  서산: [
-    W("0/01/%EC%84%9C%EC%82%B0%EC%8B%9C_%EC%A0%84%EA%B2%BD.jpg/960px-%EC%84%9C%EC%82%B0%EC%8B%9C_%EC%A0%84%EA%B2%BD.jpg"),
-    W("f/f6/Seosan_montage.jpg/960px-Seosan_montage.jpg"),
-    W("e/e6/Sinosuthora_webbiana_in_nest.jpg/960px-Sinosuthora_webbiana_in_nest.jpg"),
+    W("7/7c/Standing_Buddha_Triad_Carved_on_the_Rock_in_Donmun-ri%2C_Taean_06.JPG/1280px-Standing_Buddha_Triad_Carved_on_the_Rock_in_Donmun-ri%2C_Taean_06.JPG"),
+    W("c/c0/Standing_Rock-carved_Buddha_Triad_at_Donmun-ri_in_Taean%2C_Korea.jpg/1280px-Standing_Rock-carved_Buddha_Triad_at_Donmun-ri_in_Taean%2C_Korea.jpg"),
   ],
   부안: [
-    W("e/e5/Korea-Buan_County-Sunset_from_Naesosa-01.jpg/960px-Korea-Buan_County-Sunset_from_Naesosa-01.jpg"),
-    W("a/a0/Korea-Buan_County-Naesosa-Cheonwangmun-01.jpg/960px-Korea-Buan_County-Naesosa-Cheonwangmun-01.jpg"),
-    W("7/75/Korea-Buan_County-Naesosa-Cheonwangmun-02.jpg/960px-Korea-Buan_County-Naesosa-Cheonwangmun-02.jpg"),
+    W("7/75/Korea-Buan_County-Naesosa-Cheonwangmun-02.jpg/1280px-Korea-Buan_County-Naesosa-Cheonwangmun-02.jpg"),
+    W("6/68/Korea-Buan_County-Naesosa-Cheonwangmun-03.jpg/1280px-Korea-Buan_County-Naesosa-Cheonwangmun-03.jpg"),
+    W("5/5c/Korea-Buan_County-Naesosa-Zelkova-02.jpg/1280px-Korea-Buan_County-Naesosa-Zelkova-02.jpg"),
   ],
   고창: [
-    W("4/47/Gochang_Dolmen_Sites_-_1.JPG/960px-Gochang_Dolmen_Sites_-_1.JPG"),
-    W("d/d2/Gochang_Dolmen_Sites_-_2.JPG/960px-Gochang_Dolmen_Sites_-_2.JPG"),
-    W("d/d2/Korea-Gwangju-Gochang_Dolmens_5350-06.JPG/960px-Korea-Gwangju-Gochang_Dolmens_5350-06.JPG"),
+    W("4/44/Gochang_Dolmens_Skyline%2C_South_Korea.jpg/1280px-Gochang_Dolmens_Skyline%2C_South_Korea.jpg"),
+    W("a/a2/Gochang_Dolmens%2C_South_Korea.jpg/1280px-Gochang_Dolmens%2C_South_Korea.jpg"),
+    W("4/47/Gochang_Dolmen_Sites_-_1.JPG/1280px-Gochang_Dolmen_Sites_-_1.JPG"),
   ],
   순창: [
-    W("1/17/Seonunsa_Temple%2C_South_Korea.jpg/960px-Seonunsa_Temple%2C_South_Korea.jpg"),
-    W("e/e2/Seonunsa_Temple_Guardian%2C_South_Korea.jpg/960px-Seonunsa_Temple_Guardian%2C_South_Korea.jpg"),
-    W("a/a8/The_Artifact_Site_of_Mrs._Seol_and_Shin_Gyeong-jun.JPG/960px-The_Artifact_Site_of_Mrs._Seol_and_Shin_Gyeong-jun.JPG"),
+    W("e/e2/Seonunsa_Temple_Guardian%2C_South_Korea.jpg/1280px-Seonunsa_Temple_Guardian%2C_South_Korea.jpg"),
   ],
   보성: [
-    W("8/82/Korea-Boseong-Green.tea-02.jpg/960px-Korea-Boseong-Green.tea-02.jpg"),
-    W("b/b7/Korea-Boseong-Green.tea-04.jpg/960px-Korea-Boseong-Green.tea-04.jpg"),
-    W("3/37/Korea-Boseong-Green.tea-06.jpg/960px-Korea-Boseong-Green.tea-06.jpg"),
+    W("2/2a/Korea-Boseong-Green.tea-05.jpg/1280px-Korea-Boseong-Green.tea-05.jpg"),
+    W("3/37/Korea-Boseong-Green.tea-06.jpg/1280px-Korea-Boseong-Green.tea-06.jpg"),
+    W("2/25/Korea-Boseong-Green.tea-08.jpg/1280px-Korea-Boseong-Green.tea-08.jpg"),
   ],
   구례: [
-    W("d/d2/Korea-Gurye-Hwaeomsa_4982-06.JPG/960px-Korea-Gurye-Hwaeomsa_4982-06.JPG"),
-    W("9/90/Korea-Gurye-Hwaeomsa_5017-06.JPG/960px-Korea-Gurye-Hwaeomsa_5017-06.JPG"),
-    W("3/3d/Korea-Gurye-Hwaeomsa_5025-06.JPG/960px-Korea-Gurye-Hwaeomsa_5025-06.JPG"),
-  ],
-  하동: [
-    W("f/f7/Korea-Hadong-Hwagae.jangteo-Market-01.jpg/960px-Korea-Hadong-Hwagae.jangteo-Market-01.jpg"),
-    W("f/f7/Korea_Electric_Power_Corporation_Hadong_branch.JPG/960px-Korea_Electric_Power_Corporation_Hadong_branch.JPG"),
-    W("2/2d/Hadong_Station_20160815_155002.jpg/960px-Hadong_Station_20160815_155002.jpg"),
+    W("9/90/Korea-Gurye-Hwaeomsa_5017-06.JPG/1280px-Korea-Gurye-Hwaeomsa_5017-06.JPG"),
+    W("3/3d/Korea-Gurye-Hwaeomsa_5025-06.JPG/1280px-Korea-Gurye-Hwaeomsa_5025-06.JPG"),
   ],
   합천: [
-    W("c/c2/Hapcheon_county_assembly.jpg/960px-Hapcheon_county_assembly.jpg"),
-    W("6/6f/Hapcheon_courthouse.jpg/960px-Hapcheon_courthouse.jpg"),
-    W("0/0d/Hapcheon_Daeyaseong_wall.jpg/960px-Hapcheon_Daeyaseong_wall.jpg"),
+    W("1/1c/Haeinsa_Temple_04.jpg/1280px-Haeinsa_Temple_04.jpg"),
+    W("0/06/Haeinsa_Temple_12.jpg/1280px-Haeinsa_Temple_12.jpg"),
+    W("a/a8/Haeinsa_Temple_03.jpg/1280px-Haeinsa_Temple_03.jpg"),
   ],
   거제: [
-    W("1/12/Korea-Geoje-Gohyeon_Castle-02.jpg/960px-Korea-Geoje-Gohyeon_Castle-02.jpg"),
-    W("8/84/Geoje_Samsung_Hotel_korea.JPG/960px-Geoje_Samsung_Hotel_korea.JPG"),
-    W("f/ff/Okpo_mountain_view.jpg/960px-Okpo_mountain_view.jpg"),
+    W("f/f2/Korea-Geoje-Gohyeon_Castle-01.jpg/1280px-Korea-Geoje-Gohyeon_Castle-01.jpg"),
+    W("8/8f/First_Busan%E2%80%93Geoje_Bridge3.jpg/1280px-First_Busan%E2%80%93Geoje_Bridge3.jpg"),
+    W("5/57/Geoje_Island%2C_South_Korea_%281%29.jpg/1280px-Geoje_Island%2C_South_Korea_%281%29.jpg"),
   ],
   통영: [
-    W("d/d9/Korea-Tongyeong-Cityscape-01.jpg/960px-Korea-Tongyeong-Cityscape-01.jpg"),
-    W("0/0b/Korea-Tongyeong-Cityscape-06.jpg/960px-Korea-Tongyeong-Cityscape-06.jpg"),
-    W("9/9a/Korea-Tongyeong-Cityscape-07.jpg/960px-Korea-Tongyeong-Cityscape-07.jpg"),
+    W("0/0b/Korea-Tongyeong-Cityscape-06.jpg/1280px-Korea-Tongyeong-Cityscape-06.jpg"),
+    W("9/9a/Korea-Tongyeong-Cityscape-07.jpg/1280px-Korea-Tongyeong-Cityscape-07.jpg"),
+    W("5/51/Korea-Tongyeong-Port_and_ships-02.jpg/1280px-Korea-Tongyeong-Port_and_ships-02.jpg"),
   ],
   남해: [
-    W("9/95/Korea-Namhae-German_Village-Bossam-01.jpg/960px-Korea-Namhae-German_Village-Bossam-01.jpg"),
-    W("0/03/Namhae_Bridge.jpg/960px-Namhae_Bridge.jpg"),
-    W("2/2d/NamhaeBridge-N.jpg/960px-NamhaeBridge-N.jpg"),
+    W("3/32/Noryang_Bridge_and_Namhae_Bridge_aerial.jpg/1280px-Noryang_Bridge_and_Namhae_Bridge_aerial.jpg"),
+    W("9/9c/German_Village_in_Namhae%2C_South_Korea_on_August_31st%2C_2019.jpg/1280px-German_Village_in_Namhae%2C_South_Korea_on_August_31st%2C_2019.jpg"),
+    W("8/87/View_of_German_Village_in_Namhae%2C_South_Korea.jpg/1280px-View_of_German_Village_in_Namhae%2C_South_Korea.jpg"),
   ],
   완도: [
-    W("7/75/On_a_ferry%2C_Korea.jpg/960px-On_a_ferry%2C_Korea.jpg"),
-    W("9/9a/On_a_ferry%2C_Korea2.jpg/960px-On_a_ferry%2C_Korea2.jpg"),
-    W("b/bf/Wando-gun_Office.JPG/960px-Wando-gun_Office.JPG"),
+    W("6/68/Cheonghae_Bridge.JPG/1280px-Cheonghae_Bridge.JPG"),
+    W("e/e1/Wando_Bridge.JPG/1280px-Wando_Bridge.JPG"),
+    W("6/65/Wando_Wondong_port.JPG/1280px-Wando_Wondong_port.JPG"),
   ],
   진도: [
-    W("8/8d/Jindo_Bridge.jpg/960px-Jindo_Bridge.jpg"),
-    W("f/f6/Jindo_Bridge-2.jpg/960px-Jindo_Bridge-2.jpg"),
-    W("8/8f/Jindo_024.JPG/960px-Jindo_024.JPG"),
-  ],
-  고흥: [
-    W("9/98/Korea-Goheung-Goheung_County_Bus.JPG/960px-Korea-Goheung-Goheung_County_Bus.JPG"),
-    W("9/91/Korea_-_Goheung-gun_-_Narado_Beach_panorama.jpg/960px-Korea_-_Goheung-gun_-_Narado_Beach_panorama.jpg"),
-    W("5/5b/Goheung_County_Office.jpg/960px-Goheung_County_Office.jpg"),
+    W("f/f6/Jindo_Bridge-2.jpg/1280px-Jindo_Bridge-2.jpg"),
+    W("8/8f/Jindo_024.JPG/1280px-Jindo_024.JPG"),
   ],
   강진: [
-    W(
-      "3/3b/KORAIL_Gangjin_Gun_33_%2817095832698%29.jpg/960px-KORAIL_Gangjin_Gun_33_%2817095832698%29.jpg",
-    ),
-    W(
-      "2/29/KORAIL_Gangjin_Gun_59_%2817096046600%29.jpg/960px-KORAIL_Gangjin_Gun_59_%2817096046600%29.jpg",
-    ),
-    W(
-      "a/ab/KORAIL_Gangjin_Gun_25_%2816661149474%29.jpg/960px-KORAIL_Gangjin_Gun_25_%2816661149474%29.jpg",
-    ),
+    W("2/29/KORAIL_Gangjin_Gun_59_%2817096046600%29.jpg/1280px-KORAIL_Gangjin_Gun_59_%2817096046600%29.jpg"),
+    W("a/ab/KORAIL_Gangjin_Gun_25_%2816661149474%29.jpg/1280px-KORAIL_Gangjin_Gun_25_%2816661149474%29.jpg"),
   ],
   장흥: [
-    W("5/51/Korea-Jangheung-Jeungsanji-01.jpg/960px-Korea-Jangheung-Jeungsanji-01.jpg"),
-    W("7/71/Western_Stone_Stupa_at_Borimsa_temple_in_Jangheung%2C_Korea.jpg/960px-Western_Stone_Stupa_at_Borimsa_temple_in_Jangheung%2C_Korea.jpg"),
-    W("c/c9/Stupa_for_master_Bojo_at_Borimsa_temple_in_Jangheung%2C_Korea.jpg/960px-Stupa_for_master_Bojo_at_Borimsa_temple_in_Jangheung%2C_Korea.jpg"),
+    W("e/e2/Korea-Jangheung-Jeungsanji-01_%28cropped%29.jpg/1280px-Korea-Jangheung-Jeungsanji-01_%28cropped%29.jpg"),
+    W("0/01/Stele_of_master_Bojo_at_Borimsa_temple_in_Jangheung%2C_Korea.jpg/1280px-Stele_of_master_Bojo_at_Borimsa_temple_in_Jangheung%2C_Korea.jpg"),
+    W("c/c9/Stupa_for_master_Bojo_at_Borimsa_temple_in_Jangheung%2C_Korea.jpg/1280px-Stupa_for_master_Bojo_at_Borimsa_temple_in_Jangheung%2C_Korea.jpg"),
   ],
   담양: [
-    W("8/83/Korea-Damyang-Soswaewon-02.jpg/960px-Korea-Damyang-Soswaewon-02.jpg"),
-    W("5/52/Korea-Damyang-Bamboo_Forest_near_Soswaewon-01.jpg/960px-Korea-Damyang-Bamboo_Forest_near_Soswaewon-01.jpg"),
-    W("2/21/Korea-Damyang-Bamboo_Forest_near_Soswaewon-02.jpg/960px-Korea-Damyang-Bamboo_Forest_near_Soswaewon-02.jpg"),
+    W("5/52/Korea-Damyang-Bamboo_Forest_near_Soswaewon-01.jpg/1280px-Korea-Damyang-Bamboo_Forest_near_Soswaewon-01.jpg"),
+    W("2/21/Korea-Damyang-Bamboo_Forest_near_Soswaewon-02.jpg/1280px-Korea-Damyang-Bamboo_Forest_near_Soswaewon-02.jpg"),
+    W("0/03/Korea-Damyang-Bamboo_Forest_near_Soswaewon-03.jpg/1280px-Korea-Damyang-Bamboo_Forest_near_Soswaewon-03.jpg"),
   ],
   무주: [
-    W("7/77/Entrance_to_Muju_IC_night.jpg/960px-Entrance_to_Muju_IC_night.jpg"),
-    W("4/4c/Muju_Mupung_Post_Office.jpg/960px-Muju_Mupung_Post_Office.jpg"),
-    W("a/a1/Korean_5th_local_election_ballot_paper_-_Muju_na.jpg/960px-Korean_5th_local_election_ballot_paper_-_Muju_na.jpg"),
+    W("6/67/Korea-Snow_in_Mt._Deogyu-Stairway-01.jpg/1280px-Korea-Snow_in_Mt._Deogyu-Stairway-01.jpg"),
+    W("f/f2/MJGeopark-Pahoe.jpg/1280px-MJGeopark-Pahoe.jpg"),
+    W("e/ea/MJGeopark-SushimdaeTuff.jpg/1280px-MJGeopark-SushimdaeTuff.jpg"),
+    "https://upload.wikimedia.org/wikipedia/commons/1/1a/%EB%8D%95%EC%9C%A0%EC%82%B0_%28Deogyusan%29_snow_trees.jpg",
   ],
   임실: [
-    W("a/ac/SungSu_elementary_school.jpg/960px-SungSu_elementary_school.jpg"),
-    W("e/e8/SungSu_elementary_school2.jpg/960px-SungSu_elementary_school2.jpg"),
-    W("7/74/Imsilgun_County_43_%2816850101932%29.jpg/960px-Imsilgun_County_43_%2816850101932%29.jpg"),
-  ],
-  익산: [
-    W("f/f4/Iksan_-_Young_Deung_Dong.jpg/960px-Iksan_-_Young_Deung_Dong.jpg"),
-    W("4/46/Iksan_City_48_Korean_Style_Fried_chicken.jpg/960px-Iksan_City_48_Korean_Style_Fried_chicken.jpg"),
-    W("7/71/Mireuksa%2C_Iksan_2015.jpg/960px-Mireuksa%2C_Iksan_2015.jpg"),
+    "https://upload.wikimedia.org/wikipedia/commons/b/b0/Imsil_Hyanggyo.jpg",
   ],
   포천: [
-    W("4/46/Korea-Pocheon-Herb_Island-Sunflower_an_others-01.jpg/960px-Korea-Pocheon-Herb_Island-Sunflower_an_others-01.jpg"),
-    W("1/1f/%ED%8F%AC%EC%B2%9C_%EC%95%84%ED%8A%B8%EB%B0%B8%EB%A6%AC_beeniru_16.JPG/960px-%ED%8F%AC%EC%B2%9C_%EC%95%84%ED%8A%B8%EB%B0%B8%EB%A6%AC_beeniru_16.JPG"),
-    W("8/85/%ED%8F%AC%EC%B2%9C_%EC%95%84%ED%8A%B8%EB%B0%B8%EB%A6%AC_beeniru_4.JPG/960px-%ED%8F%AC%EC%B2%9C_%EC%95%84%ED%8A%B8%EB%B0%B8%EB%A6%AC_beeniru_4.JPG"),
+    W("c/c9/ArtValleyInKorea_1.jpg/1280px-ArtValleyInKorea_1.jpg"),
+    W("2/2c/ArtValleyInKorea.jpg/1280px-ArtValleyInKorea.jpg"),
+    W("6/6a/Art_Valley_In_Korea_%2865750913%29.jpeg/1280px-Art_Valley_In_Korea_%2865750913%29.jpeg"),
   ],
   양평: [
-    W("4/4a/Yangpyeong_Bus_Information_System.jpg/960px-Yangpyeong_Bus_Information_System.jpg"),
-    W("0/05/Yangpyeong-eup.JPG/960px-Yangpyeong-eup.JPG"),
-    W("4/42/Jungang_Line_Yangsu_Bridge_and_Old_Jungang_Line_Bukhan_River_Bridge.JPG/960px-Jungang_Line_Yangsu_Bridge_and_Old_Jungang_Line_Bukhan_River_Bridge.JPG"),
+    W("2/2b/Jungang_Line_Yangsu_Bridge_and_Old_Jungang_Line_Bukhan_River_Bridge_01.JPG/1280px-Jungang_Line_Yangsu_Bridge_and_Old_Jungang_Line_Bukhan_River_Bridge_01.JPG"),
+    W("1/1e/Jungang_Line_Yangsu_Bridge_and_Old_Jungang_Line_Bukhan_River_Bridge_02.JPG/1280px-Jungang_Line_Yangsu_Bridge_and_Old_Jungang_Line_Bukhan_River_Bridge_02.JPG"),
+    W("3/35/Namhan_River_01.jpg/1280px-Namhan_River_01.jpg"),
   ],
   파주: [
-    W("7/72/Mangbaedan%2C_Imjingak%2C_Paju%2C_South_Korea_%283162650504%29.jpg/960px-Mangbaedan%2C_Imjingak%2C_Paju%2C_South_Korea_%283162650504%29.jpg"),
-    W("a/a3/Civilian_Control_Line%2C_Imjingak%2C_Paju%2C_South_Korea_%283162648972%29.jpg/960px-Civilian_Control_Line%2C_Imjingak%2C_Paju%2C_South_Korea_%283162648972%29.jpg"),
-    W("5/57/Persicaria_senticosa_in_Paju%2C_Korea_03.JPG/960px-Persicaria_senticosa_in_Paju%2C_Korea_03.JPG"),
+    W("a/a8/Heyri_Artvalley_01_%2831713169650%29.jpg/1280px-Heyri_Artvalley_01_%2831713169650%29.jpg"),
+    W("9/9f/Heyri_Artvalley_11_%2831247307714%29.jpg/1280px-Heyri_Artvalley_11_%2831247307714%29.jpg"),
+    W("0/09/Heyri_Artvalley_08_%2832049448496%29.jpg/1280px-Heyri_Artvalley_08_%2832049448496%29.jpg"),
   ],
   강화도: [
-    W("8/89/Jonghae-ru%2C_the_gate_of_Jeongjogsanseong_at_Ganghwa-do.jpg/960px-Jonghae-ru%2C_the_gate_of_Jeongjogsanseong_at_Ganghwa-do.jpg"),
-    W("a/aa/Dolmen_at_Ganghwa_Island.jpg/960px-Dolmen_at_Ganghwa_Island.jpg"),
-    W("0/07/An_Alley_in_Ganghwa_Island.jpg/960px-An_Alley_in_Ganghwa_Island.jpg"),
+    W("a/aa/Dolmen_at_Ganghwa_Island.jpg/1280px-Dolmen_at_Ganghwa_Island.jpg"),
+    W("0/07/An_Alley_in_Ganghwa_Island.jpg/1280px-An_Alley_in_Ganghwa_Island.jpg"),
+    "https://upload.wikimedia.org/wikipedia/commons/0/07/Ganghwa1.jpg",
   ],
   울릉도: [
-    W("8/8c/Ulleung-30km.jpg/960px-Ulleung-30km.jpg"),
-    W("9/91/KOCIS_Port_Taeha%2C_Ulleungdo_%284925990346%29.jpg/960px-KOCIS_Port_Taeha%2C_Ulleungdo_%284925990346%29.jpg"),
-    W("b/b8/KOCIS_Ulleungdo%2C_or_Ulleung_Island_%284925987614%29.jpg/960px-KOCIS_Ulleungdo%2C_or_Ulleung_Island_%284925987614%29.jpg"),
+    W("9/91/KOCIS_Port_Taeha%2C_Ulleungdo_%284925990346%29.jpg/1280px-KOCIS_Port_Taeha%2C_Ulleungdo_%284925990346%29.jpg"),
+    W("b/b8/KOCIS_Ulleungdo%2C_or_Ulleung_Island_%284925987614%29.jpg/1280px-KOCIS_Ulleungdo%2C_or_Ulleung_Island_%284925987614%29.jpg"),
+    "https://upload.wikimedia.org/wikipedia/commons/6/6d/Ulleung_island_from_above.jpg",
   ],
   추자도: [
-    W("e/e5/Jeju_Olle_Route_18-1.jpg/960px-Jeju_Olle_Route_18-1.jpg"),
-    W("5/50/Jejuolle_route_18-2.jpg/960px-Jejuolle_route_18-2.jpg"),
-    W("6/6d/Ulleung_island_from_above.jpg/960px-Ulleung_island_from_above.jpg"),
-  ],
-  섬진강: [
-    W("1/16/Seomjingang_MS3672.JPG/960px-Seomjingang_MS3672.JPG"),
-    W("3/35/Imsilgun_County_60_%2816850097752%29.jpg/960px-Imsilgun_County_60_%2816850097752%29.jpg"),
-    W("0/0b/Imsilgun_County_64_%2816665110419%29.jpg/960px-Imsilgun_County_64_%2816665110419%29.jpg"),
+    W("5/50/Jejuolle_route_18-2.jpg/1280px-Jejuolle_route_18-2.jpg"),
   ],
   순천만: [
-    W("6/68/Panorama_of_Reed_fields_in_Suncheon_bay.jpg/960px-Panorama_of_Reed_fields_in_Suncheon_bay.jpg"),
-    W("9/96/Suncheon_Bay_Ecological_Park_-_Flickr_-_cc.photoshare_%284%29.jpg/960px-Suncheon_Bay_Ecological_Park_-_Flickr_-_cc.photoshare_%284%29.jpg"),
-    W("a/ad/Suncheon_Bay_Ecological_Park.jpg/960px-Suncheon_Bay_Ecological_Park.jpg"),
+    W("6/61/20181231_Suncheon_Bay_003.jpg/1280px-20181231_Suncheon_Bay_003.jpg"),
+    W("8/8f/20181231_Suncheon_Bay_001.jpg/1280px-20181231_Suncheon_Bay_001.jpg"),
+    W("7/7c/Suncheon_bay_banner.jpg/1280px-Suncheon_bay_banner.jpg"),
   ],
 };
 
 const FALLBACK = IMAGES.안동;
 
 export function getDestinationImage(name) {
-  return IMAGES[name] || OVERRIDES[name] || FALLBACK;
+  return IMAGES[name] || FALLBACK;
 }
 
 /** 일정 화면용 사진 목록 (해당 지역 사진만) */
@@ -364,7 +247,6 @@ export function getDestinationGallery(name, count = 4) {
     (url) => url && url !== main,
   );
   const unique = [...new Set([main, ...extras])];
-  while (unique.length < count) unique.push(main);
   return unique.slice(0, count);
 }
 

@@ -11,7 +11,7 @@ const OUT = path.join(__dirname, "gallery-data.json");
 
 const CITIES = {
   안동: ["Hahoe Folk Village Korea", "Andong Korea temple"],
-  군산: ["Gunsan modern history Korea", "Korea-Gunsan"],
+  군산: ["Seonyudo Gunsan Korea", "Gunsan islands coastal Korea"],
   문경: ["Mungyeong Saejae Korea", "Korea-Mungyeong"],
   영덕: ["Yeongdeok beach Korea", "Ganggu port Yeongdeok"],
   울진: ["Uljin Korea coast", "Korea-Uljin"],
@@ -19,7 +19,7 @@ const CITIES = {
   동해: ["Donghae Samhwasa", "Korea-Donghae"],
   정선: ["Jeongseon rail bike", "Korea-Jeongseon"],
   태백: ["Taebaek mountain Korea", "Korea-Taebaek"],
-  인제: ["Inje Baekdamsa", "Korea-Inje"],
+  인제: ["Inje Misiryeong Gombaeryeong", "Baekdamsa Korea"],
   양양: ["Naksan Temple Yangyang", "Korea-Yangyang"],
   홍천: ["Hongcheon river Korea", "Korea-Hongcheon"],
   단양: ["Dodamsambong Danyang", "Korea-Danyang"],
@@ -45,7 +45,7 @@ const CITIES = {
   강진: ["Baengnyeonsa Gangjin", "Gauhdo Island Gangjin", "Korea-Gangjin"],
   장흥: ["Jangheung Korea", "Korea-Jangheung"],
   담양: ["Damyang bamboo forest", "Korea-Damyang"],
-  무주: ["Muju Deogyusan", "Korea-Muju"],
+  무주: ["Deogyusan Korea mountain", "Muju county landscape"],
   임실: ["Imsil cheese Korea", "Korea-Imsil"],
   익산: ["Mireuksa Iksan", "Korea-Iksan"],
   포천: ["Pocheon Art Valley", "Korea-Pocheon"],
@@ -88,6 +88,9 @@ async function commonsSearch(q) {
       (f) =>
         !/\.svg$/i.test(f) &&
         !/flag|logo|emblem|map|icon|coat|USAF|photo \d/i.test(f) &&
+        !/ballot|election|post.?office|_Station|Univ\.|Speedium|gun.?office|tunnel|Tunnel|Magpie|Expwy|dog|puppy/i.test(
+          f,
+        ) &&
         /\.(jpg|jpeg|png|JPG|JPEG|PNG)$/i.test(f),
     );
 }
