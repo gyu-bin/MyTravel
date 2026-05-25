@@ -1,32 +1,92 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Intro from "./components/Intro";
-import PaymentGate from "./components/PaymentGate";
+import PaymentPanel from "./components/PaymentPanel";
+import PlanViewer from "./components/PlanViewer";
+import PhaseView from "./components/PhaseView";
+import ThemeToggle from "./components/ThemeToggle";
+import MagneticButton from "./components/MagneticButton";
 import { questions } from "./data/questions";
 import { DESTINATIONS } from "./data/destinations";
-import { getDestinationImage } from "./data/destinationImages";
+import DestCardGallery from "./components/DestCardGallery";
 import { scoreDestinations } from "./utils/scoreDestinations";
 import { fetchTravelPlan } from "./utils/fetchTravelPlan";
-import { PLAN_PRICE } from "./utils/payment";
+import {
+  PLAN_PRICE,
+  loadPaymentSession,
+  completeRedirectPayment,
+  consumePaymentReturnBootstrap,
+  hasPlanAccess,
+  markPlanAccessGranted,
+  clearPlanAccess,
+} from "./utils/payment";
+import { buildRandomAnswers, tryUnlockAdminFromUrl } from "./utils/admin";
 
 const RANK_LABELS = ["🥇 1위", "🥈 2위", "🥉 3위"];
 const RANK_CLASSES = ["dest-rank--1", "dest-rank--2", "dest-rank--3"];
+const paymentBootstrap = consumePaymentReturnBootstrap();
+
+function scrollToPlans() {
+  requestAnimationFrame(() => {
+    document.getElementById("result-plans")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  });
+}
 
 export default function App() {
-  const [phase, setPhase] = useState("intro");
+  const [phase, setPhase] = useState(paymentBootstrap?.phase ?? "intro");
   const [current, setCurrent] = useState(0);
-  const [answers, setAnswers] = useState([]);
+  const [answers, setAnswers] = useState(paymentBootstrap?.answers ?? []);
   const [selected, setSelected] = useState(null);
-  const [destinations, setDestinations] = useState([]);
-  const [chosenDest, setChosenDest] = useState(null);
-  const [plan, setPlan] = useState(null);
-  const [planLoading, setPlanLoading] = useState(false);
-  const [planError, setPlanError] = useState(null);
+  const [destinations, setDestinations] = useState(
+    paymentBootstrap?.destinations ?? []
+  );
+  const [plans, setPlans] = useState({});
+  const [activePlanIndex, setActivePlanIndex] = useState(0);
+  const [planLoading, setPlanLoading] = useState(
+    paymentBootstrap?.planLoading ?? false
+  );
+  const [planError, setPlanError] = useState(paymentBootstrap?.planError ?? null);
+  const [hasPaid, setHasPaid] = useState(() => {
+    if (paymentBootstrap?.pendingPayment) return true;
+    return hasPlanAccess();
+  });
   const [anim, setAnim] = useState(true);
   const advanceTimerRef = useRef(null);
+  const pendingPaymentRef = useRef(paymentBootstrap?.pendingPayment ?? null);
 
   const progress = ((current + 1) / questions.length) * 100;
   const q = questions[current];
   const isLastQuestion = current + 1 >= questions.length;
+  const top3 = destinations.slice(0, 3);
+
+  useEffect(() => {
+    tryUnlockAdminFromUrl();
+  }, []);
+
+  useEffect(() => {
+    if (phase !== "result" || !hasPaid || !planLoading) return;
+    scrollToPlans();
+  }, [phase, hasPaid, planLoading]);
+
+  useEffect(() => {
+    const pending = pendingPaymentRef.current;
+    if (!pending) return;
+    pendingPaymentRef.current = null;
+
+    completeRedirectPayment(pending)
+      .then(async () => {
+        setHasPaid(true);
+        markPlanAccessGranted();
+        await loadAllPlansForDests(destinations, answers);
+        scrollToPlans();
+      })
+      .catch(() => {
+        setPlanLoading(false);
+        setPlanError("결제 승인에 실패했습니다. 다시 시도해주세요.");
+      });
+  }, []);
 
   function clearAdvanceTimer() {
     if (advanceTimerRef.current) {
@@ -35,15 +95,24 @@ export default function App() {
     }
   }
 
-  function finishQuiz(answersList) {
+  function finishQuiz(answersList, { quick = false } = {}) {
     clearAdvanceTimer();
     const complete = questions.map((_, i) => answersList[i]);
     setAnswers(complete);
     setPhase("loading");
+    const delay = quick ? 400 : 2400;
     setTimeout(() => {
       setDestinations(scoreDestinations(complete));
       setPhase("result");
-    }, 2400);
+    }, delay);
+  }
+
+  function handleAdminSkipToResult() {
+    setCurrent(0);
+    setSelected(null);
+    setPlans({});
+    setPlanError(null);
+    finishQuiz(buildRandomAnswers(), { quick: true });
   }
 
   function goToQuestion(nextIndex, answersList) {
@@ -94,47 +163,83 @@ export default function App() {
     goToQuestion(prevIndex, answers);
   }
 
-  async function loadPlan(dest) {
-    setPlanLoading(true);
-    setPlanError(null);
-    setPlan(null);
-    try {
-      setPlan(await fetchTravelPlan(dest, answers));
-    } catch (err) {
-      if (err.message === "API_KEY_MISSING") {
-        setPlanError(
-          import.meta.env.PROD
-            ? "Vercel 대시보드 → Settings → Environment Variables에 VITE_OPENAI_API_KEY를 추가한 뒤 재배포해주세요."
-            : "프로젝트 루트 .env 파일에 VITE_OPENAI_API_KEY를 설정해주세요."
-        );
-      } else if (err.message?.startsWith("API_ERROR:")) {
-        setPlanError(err.message.replace("API_ERROR: ", ""));
-      } else {
-        setPlanError(
-          "여행 계획을 불러오지 못했어요. 아래 버튼으로 다시 시도해주세요."
-        );
-      }
-    } finally {
-      setPlanLoading(false);
-    }
+  function handleGoHome() {
+    clearAdvanceTimer();
+    setPhase("intro");
+    setCurrent(0);
+    setAnswers([]);
+    setSelected(null);
+    setAnim(true);
   }
 
-  function handleChooseDest(dest) {
-    setChosenDest(dest);
-    setPlan(null);
+  function formatPlanError(err) {
+    if (err.message === "API_KEY_MISSING") {
+      return import.meta.env.PROD
+        ? "Vercel 대시보드 → Settings → Environment Variables에 VITE_OPENAI_API_KEY를 추가한 뒤 재배포해주세요."
+        : "프로젝트 루트 .env 파일에 VITE_OPENAI_API_KEY를 설정해주세요.";
+    }
+    if (err.message?.startsWith("API_ERROR:")) {
+      return err.message.replace("API_ERROR: ", "");
+    }
+    return "여행 계획을 불러오지 못했어요. 아래 버튼으로 다시 시도해주세요.";
+  }
+
+  async function loadAllPlansForDests(destList, answersList) {
+    const targets = destList.slice(0, 3);
+    setPlanLoading(true);
     setPlanError(null);
-    setPhase("payment");
+    setPlans({});
+    setActivePlanIndex(0);
+
+    const errors = [];
+    let successCount = 0;
+
+    await Promise.all(
+      targets.map(async (dest) => {
+        try {
+          const plan = await fetchTravelPlan(dest, answersList);
+          successCount += 1;
+          setPlans((prev) => ({ ...prev, [dest]: plan }));
+        } catch (err) {
+          errors.push(`${dest}: ${formatPlanError(err)}`);
+        }
+      })
+    );
+
+    if (successCount === 0) {
+      setPlanError(errors[0] || "일정을 생성하지 못했습니다.");
+    } else if (errors.length > 0) {
+      setPlanError(`일부 일정 생성 실패 — ${errors.join(" / ")}`);
+    }
+
+    setPlanLoading(false);
+  }
+
+  async function loadAllPlans() {
+    await loadAllPlansForDests(top3, answers);
   }
 
   async function handlePaymentComplete() {
-    if (!chosenDest) return;
-    setPhase("plan");
-    await loadPlan(chosenDest);
+    setHasPaid(true);
+    markPlanAccessGranted();
+    setActivePlanIndex(0);
+    setPlanLoading(true);
+    setPlanError(null);
+    scrollToPlans();
+    await loadAllPlans();
+    scrollToPlans();
+  }
+
+  function handleSelectResultDest(index) {
+    if (!hasPaid) return;
+    setActivePlanIndex(index);
+    const el = document.getElementById("result-plans");
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function handleRetryPlan() {
-    if (!chosenDest || planLoading) return;
-    loadPlan(chosenDest);
+    if (planLoading) return;
+    loadAllPlans();
   }
 
   function restart() {
@@ -144,17 +249,28 @@ export default function App() {
     setAnswers([]);
     setSelected(null);
     setDestinations([]);
-    setChosenDest(null);
-    setPlan(null);
+    setPlans({});
+    setActivePlanIndex(0);
     setPlanError(null);
+    setHasPaid(false);
+    clearPlanAccess();
     setAnim(true);
   }
 
   return (
     <div className="app">
-      {phase === "intro" && <Intro onStart={() => setPhase("quiz")} />}
+      <div className="app-bg" aria-hidden />
+      <ThemeToggle />
+
+      {phase === "intro" && (
+        <Intro
+          onStart={() => setPhase("quiz")}
+          onAdminSkipToResult={handleAdminSkipToResult}
+        />
+      )}
 
       {phase === "quiz" && (
+        <PhaseView>
         <div className="quiz">
           <div>
             <div className="prog-bar">
@@ -168,11 +284,12 @@ export default function App() {
             <div className="q-emoji">{q.emoji}</div>
             <div className="q-text">{q.question}</div>
             <div className="opts">
-              {q.options.map((opt) => (
+              {q.options.map((opt, i) => (
                 <button
                   key={opt.value}
                   type="button"
                   className={`opt${selected === opt.value ? " sel" : ""}`}
+                  style={{ animationDelay: `${i * 0.05}s` }}
                   onClick={() => handleSelect(opt.value)}
                 >
                   {opt.text}
@@ -183,10 +300,9 @@ export default function App() {
               <button
                 type="button"
                 className="quiz-nav-btn quiz-nav-btn--back"
-                onClick={handleBack}
-                disabled={current === 0}
+                onClick={current === 0 ? handleGoHome : handleBack}
               >
-                ← 뒤로
+                {current === 0 ? "← 홈" : "← 뒤로"}
               </button>
               <button
                 type="button"
@@ -199,21 +315,30 @@ export default function App() {
             </div>
           </div>
         </div>
+        </PhaseView>
       )}
 
       {phase === "loading" && (
+        <PhaseView>
         <div className="loading">
-          <div className="spin" />
+          <div className="loading-orbit" />
+          <div className="loading-dots" aria-hidden>
+            <span />
+            <span />
+            <span />
+          </div>
           <div className="loading-text">
             여행 성향을 분석하고 있어요
             <br />
             <span className="loading-sub">잠깐만 기다려주세요</span>
           </div>
         </div>
+        </PhaseView>
       )}
 
-      {phase === "result" && (
-        <div className="result">
+      {phase === "result" && destinations[0] && (
+        <PhaseView>
+        <div className={`result${hasPaid ? " result--unlocked" : ""}`}>
           <div className="result-eyebrow">Travel Match Result</div>
           <h2 className="result-title">
             딱 맞는
@@ -221,167 +346,85 @@ export default function App() {
             여행지를 찾았어요! 🎉
           </h2>
           <p className="result-desc">
-            숨은 국내 여행지 TOP 3 — AI 맞춤 일정{" "}
-            <strong>{PLAN_PRICE.toLocaleString()}원</strong>
+            {hasPaid
+              ? "결제 완료 — 아래에서 1·2·3위 AI 맞춤 일정을 모두 확인하세요"
+              : (
+                <>
+                  숨은 국내 여행지 TOP 3 — AI 맞춤 일정{" "}
+                  <strong>{PLAN_PRICE.toLocaleString()}원</strong>에 3종 모두
+                </>
+              )}
           </p>
-          <div className="dest-list">
-            {destinations.map((dest, i) => {
+          <div className="dest-showcase">
+            {top3.map((dest, i) => {
               const info = DESTINATIONS[dest] || {};
+              const isActive = hasPaid && activePlanIndex === i;
+              const rankClass =
+                i === 0 ? " dest-card--featured" : " dest-card--secondary";
               return (
                 <div
                   key={dest}
-                  role="button"
-                  tabIndex={0}
-                  className={`dest-card${i === 0 ? " top" : ""}`}
-                  onClick={() => handleChooseDest(dest)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      handleChooseDest(dest);
-                    }
-                  }}
+                  role={hasPaid ? "button" : undefined}
+                  tabIndex={hasPaid ? 0 : undefined}
+                  className={`dest-card${rankClass}${i === 0 ? " top" : ""}${isActive ? " is-active" : ""}${hasPaid ? " dest-card--pickable" : ""}`}
+                  onClick={hasPaid ? () => handleSelectResultDest(i) : undefined}
+                  onKeyDown={
+                    hasPaid
+                      ? (e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            handleSelectResultDest(i);
+                          }
+                        }
+                      : undefined
+                  }
                 >
-                  <div className="dest-card-main">
-                    <span className="dest-emoji">{info.emoji}</span>
-                    <div>
-                      <div className="dest-name">{dest}</div>
-                      <div className="dest-desc">{info.desc}</div>
+                  <DestCardGallery
+                    name={dest}
+                    variant={i === 0 ? "featured" : "secondary"}
+                  />
+                  <div className="dest-card-body">
+                    <div className="dest-card-top">
+                      <span className="dest-emoji">{info.emoji}</span>
+                      <span className={`dest-rank ${RANK_CLASSES[i]}`}>
+                        {RANK_LABELS[i]}
+                      </span>
                     </div>
-                  </div>
-                  <div className="dest-card-badges">
-                    <span className={`dest-rank ${RANK_CLASSES[i]}`}>
-                      {RANK_LABELS[i]}
-                    </span>
-                    <span className="dest-price">AI {PLAN_PRICE.toLocaleString()}원</span>
+                    <div className="dest-name">{dest}</div>
+                    <div className="dest-desc">{info.desc}</div>
+                    {hasPaid && (
+                      <span className="dest-card-cta">일정 보기 →</span>
+                    )}
                   </div>
                 </div>
               );
             })}
           </div>
-          <p className="result-hint">
-            여행지를 선택하면 결제 후 AI 일정을 받을 수 있어요
-          </p>
-          <button type="button" className="btn-text-link" onClick={restart}>
+
+          {!hasPaid && (
+            <PaymentPanel
+              destinations={top3}
+              answers={answers}
+              onPaid={handlePaymentComplete}
+            />
+          )}
+
+          {hasPaid && (
+            <PlanViewer
+              destinations={top3}
+              plans={plans}
+              activeIndex={activePlanIndex}
+              onSelectIndex={setActivePlanIndex}
+              planLoading={planLoading}
+              planError={planError}
+              onRetry={handleRetryPlan}
+            />
+          )}
+
+          <button type="button" className="btn-text-link result-restart" onClick={restart}>
             처음부터 다시하기
           </button>
         </div>
-      )}
-
-      {phase === "payment" && chosenDest && (
-        <PaymentGate
-          destination={chosenDest}
-          onPaid={handlePaymentComplete}
-          onBack={() => setPhase("result")}
-        />
-      )}
-
-      {phase === "plan" && (
-        <div className="plan">
-          <div
-            className="plan-hero plan-hero--photo"
-            style={{
-              backgroundImage: `url(${getDestinationImage(chosenDest)})`,
-            }}
-          >
-            <div className="plan-hero-overlay">
-              <span className="plan-hero-emoji">
-                {DESTINATIONS[chosenDest]?.emoji || "🗺"}
-              </span>
-              <h2 className="plan-hero-title">{chosenDest} 여행계획</h2>
-              {planLoading && !plan && (
-                <p className="plan-hero-reason">
-                  AI가 맞춤 여행계획을 작성 중이에요...
-                </p>
-              )}
-              {plan && (
-                <p className="plan-hero-reason">{plan.reason}</p>
-              )}
-            </div>
-          </div>
-
-          {planLoading && (
-            <div className="loading" style={{ padding: "40px 0" }}>
-              <div className="spin" />
-              <p className="loading-sub">일정을 구성하고 있어요</p>
-            </div>
-          )}
-
-          {planError && (
-            <div className="plan-error-wrap">
-              <div className="plan-error">{planError}</div>
-              <button
-                type="button"
-                className="btn-retry"
-                onClick={handleRetryPlan}
-                disabled={planLoading}
-              >
-                다시 시도
-              </button>
-            </div>
-          )}
-
-          {plan && !planLoading && (
-            <>
-              <div>
-                <div className="section-label">추천 일정</div>
-                <div className="plan-days">
-                  {plan.days?.map((day) => (
-                    <div className="day-card" key={day.day}>
-                      <div className="day-title">{day.day}</div>
-                      <div className="day-subtitle">{day.title}</div>
-                      {day.schedule?.map((s, i) => (
-                        <div className="sch-item" key={i}>
-                          <span className="sch-time">{s.time}</span>
-                          <span className="sch-dot" />
-                          <div>
-                            <div className="sch-place">{s.place}</div>
-                            <div className="sch-desc">{s.desc}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="plan-extras">
-                <div className="tips-card">
-                  <div className="section-label">현지 꿀팁</div>
-                  {plan.tips?.map((tip, i) => (
-                    <div className="tip-item" key={i}>
-                      <span className="tip-bullet">•</span>
-                      <span>{tip}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="tips-card">
-                  <div className="section-label">꼭 먹어야 할 것</div>
-                  <div className="food-tags">
-                    {plan.food?.map((f) => (
-                      <span key={f} className="food-tag">
-                        {f}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-
-          <div className="plan-actions">
-            {plan && !planLoading && (
-              <button
-                type="button"
-                className="btn-outline"
-                onClick={() => setPhase("result")}
-              >
-                ← 다른 여행지 보기
-              </button>
-            )}
-            <button type="button" className="btn-solid" onClick={restart}>
-              처음부터 다시하기
-            </button>
-          </div>
-        </div>
+        </PhaseView>
       )}
     </div>
   );

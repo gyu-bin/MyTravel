@@ -1,112 +1,3 @@
-/**
- * 여행지별 사진 — 위키백과·위키미디어(한국 실제 관광/지역) 썸네일
- * 출처: Wikipedia pageimages API (CC 라이선스 각 파일 참조)
- */
-
-const W = (path) =>
-  `https://upload.wikimedia.org/wikipedia/commons/thumb/${path}`;
-
-/** SVG·깃발 등 비관광 이미지 대체 */
-const OVERRIDES = {
-  영덕: W(
-    "7/7e/Korea-Yeongdeok_County-Mountain-01.jpg/960px-Korea-Yeongdeok_County-Mountain-01.jpg",
-  ),
-  울진: W(
-    "e/e4/Korea_Route7_01_%2816696038086%29.jpg/960px-Korea_Route7_01_%2816696038086%29.jpg",
-  ),
-  인제: W("3/32/Inje_Univ._Station.jpg/960px-Inje_Univ._Station.jpg"),
-  구례: W(
-    "d/d2/Korea-Gurye-Hwaeomsa_4982-06.JPG/960px-Korea-Gurye-Hwaeomsa_4982-06.JPG",
-  ),
-  하동: W(
-    "f/f7/Korea-Hadong-Hwagae.jangteo-Market-01.jpg/960px-Korea-Hadong-Hwagae.jangteo-Market-01.jpg",
-  ),
-  남해: W(
-    "9/95/Korea-Namhae-German_Village-Bossam-01.jpg/960px-Korea-Namhae-German_Village-Bossam-01.jpg",
-  ),
-  강진: W(
-    "3/3b/KORAIL_Gangjin_Gun_33_%2817095832698%29.jpg/960px-KORAIL_Gangjin_Gun_33_%2817095832698%29.jpg",
-  ),
-  진도: W("8/8d/Jindo_Bridge.jpg/960px-Jindo_Bridge.jpg"),
-  추자도: W("e/e5/Jeju_Olle_Route_18-1.jpg/960px-Jeju_Olle_Route_18-1.jpg"),
-  순천만: W(
-    "6/68/Panorama_of_Reed_fields_in_Suncheon_bay.jpg/960px-Panorama_of_Reed_fields_in_Suncheon_bay.jpg",
-  ),
-  문경: W("d/d2/Saejae_third_gate_backside.jpg/960px-Saejae_third_gate_backside.jpg"),
-};
-
-const IMAGES = {
-  안동:
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/A_bird%27s_eye_view_of_the_Hahoe_Folk_Village_%284458648859%29.jpg/960px-A_bird%27s_eye_view_of_the_Hahoe_Folk_Village_%284458648859%29.jpg",
-  군산:
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/%EB%8C%80%EC%95%BC%EC%97%AD.jpg/960px-%EB%8C%80%EC%95%BC%EC%97%AD.jpg",
-  문경: OVERRIDES.문경,
-  영덕: OVERRIDES.영덕,
-  울진: OVERRIDES.울진,
-  삼척: W("5/56/Korea-Samcheok-Beach-01.jpg/960px-Korea-Samcheok-Beach-01.jpg"),
-  동해: W("5/59/Samhwasa_and_murung_velley.jpg/960px-Samhwasa_and_murung_velley.jpg"),
-  정선: W(
-    "7/76/Korea_Jeongseon_Traditional_Market_Train_26_%2814202094128%29.jpg/960px-Korea_Jeongseon_Traditional_Market_Train_26_%2814202094128%29.jpg",
-  ),
-  태백: W("0/03/Taebaek_3.JPG/960px-Taebaek_3.JPG"),
-  인제: OVERRIDES.인제,
-  양양: W("1/1a/Naksan_Temple.jpg/960px-Naksan_Temple.jpg"),
-  홍천: W("c/c3/Hongcheon-gun_office.JPG/960px-Hongcheon-gun_office.JPG"),
-  단양: W("f/ff/Korea-Danyang-Dodamsambong_3087-07.JPG/960px-Korea-Danyang-Dodamsambong_3087-07.JPG"),
-  충주: W("7/7d/Chungjuho_Lake.jpg/960px-Chungjuho_Lake.jpg"),
-  제천: W(
-    "5/5f/Korea-Jecheon-Cheongpung_Cultural_Properties_Center_3300-07.JPG/960px-Korea-Jecheon-Cheongpung_Cultural_Properties_Center_3300-07.JPG",
-  ),
-  공주: W(
-    "6/6b/Korea-Gongju-Gongsanseong-01.jpg/960px-Korea-Gongju-Gongsanseong-01.jpg",
-  ),
-  보령:
-    "https://upload.wikimedia.org/wikipedia/commons/d/d8/Korea-Boryeong-Daecheon_Beach-01.jpg",
-  태안: W("2/21/Taean-gun_office.JPG/960px-Taean-gun_office.JPG"),
-  서산: W("f/f6/Seosan_montage.jpg/960px-Seosan_montage.jpg"),
-  부안: W(
-    "f/f4/Korea-Buan_County-Naesosa-Daungbojeon-02.jpg/960px-Korea-Buan_County-Naesosa-Daungbojeon-02.jpg",
-  ),
-  고창: W(
-    "2/2c/.%EB%AC%B4%EC%9E%A5%EC%9D%8D%EC%84%B1%EC%9D%98_%EC%95%84%EB%A6%84%EB%8B%A4%EC%9B%80.jpg/960px-.%EB%AC%B4%EC%9E%A5%EC%9D%8D%EC%84%B1%EC%9D%98_%EC%95%84%EB%A6%84%EB%8B%A4%EC%9B%80.jpg",
-  ),
-  순창: W(
-    "a/a8/The_Artifact_Site_of_Mrs._Seol_and_Shin_Gyeong-jun.JPG/960px-The_Artifact_Site_of_Mrs._Seol_and_Shin_Gyeong-jun.JPG",
-  ),
-  보성: W("8/82/Korea-Boseong-Green.tea-02.jpg/960px-Korea-Boseong-Green.tea-02.jpg"),
-  구례: OVERRIDES.구례,
-  하동: OVERRIDES.하동,
-  합천: W("b/b1/Korea-Haeinsa-12.jpg/960px-Korea-Haeinsa-12.jpg"),
-  거제: W("5/57/Geoje_Island%2C_South_Korea_%281%29.jpg/960px-Geoje_Island%2C_South_Korea_%281%29.jpg"),
-  통영: W("7/7f/Korea-Tongyeong-Collage-01.jpg/960px-Korea-Tongyeong-Collage-01.jpg"),
-  남해: OVERRIDES.남해,
-  완도: W("2/26/Wandogun.jpg/960px-Wandogun.jpg"),
-  진도: OVERRIDES.진도,
-  고흥: W("1/11/Geogum_Bridge.JPG/960px-Geogum_Bridge.JPG"),
-  강진: OVERRIDES.강진,
-  장흥: W("2/2f/Jangheung_Chendo_Chapel_17-10389.jpg/960px-Jangheung_Chendo_Chapel_17-10389.jpg"),
-  담양: W(
-    "e/ea/Korea-Damyang-Hanok_in_the_Bamboo_Forest-01.jpg/960px-Korea-Damyang-Hanok_in_the_Bamboo_Forest-01.jpg",
-  ),
-  무주: W("3/31/Mujugun_County_44_%2816237755594%29.jpg/960px-Mujugun_County_44_%2816237755594%29.jpg"),
-  임실:
-    "https://upload.wikimedia.org/wikipedia/commons/b/b0/Imsil_Hyanggyo.jpg",
-  익산: W("f/f4/Iksan_-_Young_Deung_Dong.jpg/960px-Iksan_-_Young_Deung_Dong.jpg"),
-  포천: W(
-    "4/46/Korea-Pocheon-Herb_Island-Sunflower_an_others-01.jpg/960px-Korea-Pocheon-Herb_Island-Sunflower_an_others-01.jpg",
-  ),
-  양평: W("2/2e/Namhan_River_03.jpg/960px-Namhan_River_03.jpg"),
-  파주: W("4/4c/ImjingangRailroad.jpg/960px-ImjingangRailroad.jpg"),
-  강화도:
-    "https://upload.wikimedia.org/wikipedia/commons/0/07/Ganghwa1.jpg",
-  울릉도:
-    "https://upload.wikimedia.org/wikipedia/commons/6/6d/Ulleung_island_from_above.jpg",
-  추자도: OVERRIDES.추자도,
-  섬진강: W("1/16/Seomjingang_MS3672.JPG/960px-Seomjingang_MS3672.JPG"),
-  순천만: OVERRIDES.순천만,
-};
-
-/** 지역별 추가 사진 — 다른 여행지 URL 사용 금지 */
 const GALLERY_EXTRA = {
   안동: [
     W("6/6d/Korea-Andong_Hahoe_Folk_Village_cropped.jpg/960px-Korea-Andong_Hahoe_Folk_Village_cropped.jpg"),
@@ -160,7 +51,8 @@ const GALLERY_EXTRA = {
   ],
   양양: [
     W("a/a5/Korea-Naksansa_2215-07_grounds.JPG/960px-Korea-Naksansa_2215-07_grounds.JPG"),
-    W("1/1a/Naksan_Temple.jpg/960px-Naksan_Temple.jpg"),
+    W("0/0e/Yang_profile_pic.jpg/960px-Yang_profile_pic.jpg"),
+    W("9/93/Yang_yang_2016_paris_france.jpg/960px-Yang_yang_2016_paris_france.jpg"),
   ],
   홍천: [
     W("f/f9/Hongcheon_IMG_2530.JPG/960px-Hongcheon_IMG_2530.JPG"),
@@ -173,25 +65,19 @@ const GALLERY_EXTRA = {
     W("1/17/Korea-Danyang_Bridge_3071-07.JPG/960px-Korea-Danyang_Bridge_3071-07.JPG"),
   ],
   충주: [
-    W("9/93/Chungjuho_Lake_and_Woraksan.jpg/960px-Chungjuho_Lake_and_Woraksan.jpg"),
     W("5/5a/Korea-Chungju-Mountain-01.jpg/960px-Korea-Chungju-Mountain-01.jpg"),
     W("1/10/Korea-Chungju-Road-01.jpg/960px-Korea-Chungju-Road-01.jpg"),
+    W("6/63/Chungju_City_Hall.JPG/960px-Chungju_City_Hall.JPG"),
   ],
   제천: [
-    W(
-      "8/81/Korea-Jecheon-SBS_Jecheon_setting_3329-07.JPG/960px-Korea-Jecheon-SBS_Jecheon_setting_3329-07.JPG",
-    ),
-    W(
-      "e/e6/Korea-Jecheon-Cheongpung_Cultural_Properties_Center_Hanbyeong-nu_3311-07.JPG/960px-Korea-Jecheon-Cheongpung_Cultural_Properties_Center_Hanbyeong-nu_3311-07.JPG",
-    ),
     W("1/1d/Korea-Jecheon-Cheongpung_Cultural_Properties_Center_Dohwa-ri_House_3245-07.JPG/960px-Korea-Jecheon-Cheongpung_Cultural_Properties_Center_Dohwa-ri_House_3245-07.JPG"),
+    W("3/37/Korea-Jecheon-Cheongpung_Cultural_Properties_Center_3250-07.JPG/960px-Korea-Jecheon-Cheongpung_Cultural_Properties_Center_3250-07.JPG"),
+    W("d/d7/Korea-Jecheon-Cheongpung_Cultural_Properties_Center_3252-07.JPG/960px-Korea-Jecheon-Cheongpung_Cultural_Properties_Center_3252-07.JPG"),
   ],
   공주: [
-    W("5/5d/View_of_Gongju_01.jpg/960px-View_of_Gongju_01.jpg"),
-    W("1/1e/View_of_Gongju_02.jpg/960px-View_of_Gongju_02.jpg"),
-    W(
-      "9/90/Pavilion_in_Gongsanseong_Fortress.jpg/960px-Pavilion_in_Gongsanseong_Fortress.jpg",
-    ),
+    W("6/6b/Korea-Gongju-Gongsanseong-01.jpg/960px-Korea-Gongju-Gongsanseong-01.jpg"),
+    W("e/e9/Korea-Gongju-Gongsanseong-03.jpg/960px-Korea-Gongju-Gongsanseong-03.jpg"),
+    W("5/5e/Korea-Gongju-Gongsanseong-04.jpg/960px-Korea-Gongju-Gongsanseong-04.jpg"),
   ],
   보령: [
     W("a/aa/Korea-Boryeong_Mud_Festival-01.jpg/960px-Korea-Boryeong_Mud_Festival-01.jpg"),
@@ -274,15 +160,9 @@ const GALLERY_EXTRA = {
     W("5/5b/Goheung_County_Office.jpg/960px-Goheung_County_Office.jpg"),
   ],
   강진: [
-    W(
-      "3/3b/KORAIL_Gangjin_Gun_33_%2817095832698%29.jpg/960px-KORAIL_Gangjin_Gun_33_%2817095832698%29.jpg",
-    ),
-    W(
-      "2/29/KORAIL_Gangjin_Gun_59_%2817096046600%29.jpg/960px-KORAIL_Gangjin_Gun_59_%2817096046600%29.jpg",
-    ),
-    W(
-      "a/ab/KORAIL_Gangjin_Gun_25_%2816661149474%29.jpg/960px-KORAIL_Gangjin_Gun_25_%2816661149474%29.jpg",
-    ),
+    W("9/93/Doenjang_in_Jangdok_Gangjin_South_Korea.jpg/960px-Doenjang_in_Jangdok_Gangjin_South_Korea.jpg"),
+    W("1/1a/Korean_pottery-jangdoks_in_Gangjin_Jeollanamdo%281%29.jpg/960px-Korean_pottery-jangdoks_in_Gangjin_Jeollanamdo%281%29.jpg"),
+    W("3/32/Doenjang_in_Jangdok_Gangjin_South_Korea%282%29.jpg/960px-Doenjang_in_Jangdok_Gangjin_South_Korea%282%29.jpg"),
   ],
   장흥: [
     W("5/51/Korea-Jangheung-Jeungsanji-01.jpg/960px-Korea-Jangheung-Jeungsanji-01.jpg"),
@@ -350,40 +230,3 @@ const GALLERY_EXTRA = {
     W("a/ad/Suncheon_Bay_Ecological_Park.jpg/960px-Suncheon_Bay_Ecological_Park.jpg"),
   ],
 };
-
-const FALLBACK = IMAGES.안동;
-
-export function getDestinationImage(name) {
-  return IMAGES[name] || OVERRIDES[name] || FALLBACK;
-}
-
-/** 일정 화면용 사진 목록 (해당 지역 사진만) */
-export function getDestinationGallery(name, count = 4) {
-  const main = getDestinationImage(name);
-  const extras = (GALLERY_EXTRA[name] || []).filter(
-    (url) => url && url !== main,
-  );
-  const unique = [...new Set([main, ...extras])];
-  while (unique.length < count) unique.push(main);
-  return unique.slice(0, count);
-}
-
-/** 위키미디어 파일 페이지 링크 (출처 표기용) */
-export function getImageCredit(name) {
-  const url = getDestinationImage(name);
-  if (!url?.includes("wikimedia.org")) {
-    return { label: "Wikimedia Commons", href: "https://commons.wikimedia.org/" };
-  }
-
-  const thumbMatch = url.match(/\/([^/]+)$/);
-  const thumbName = thumbMatch?.[1] || "";
-  const fileName = thumbName.replace(/^960px-/, "").replace(/^(\d+px-)/, "");
-  if (!fileName) {
-    return { label: "Wikimedia Commons", href: "https://commons.wikimedia.org/" };
-  }
-
-  return {
-    label: "Wikimedia Commons",
-    href: `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(decodeURIComponent(fileName))}`,
-  };
-}

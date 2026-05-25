@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { CARDS } from "../data/destinations";
+import MagneticButton from "./MagneticButton";
+import IntroAdminTools from "./IntroAdminTools";
 
 const POPULAR = [
   { name: "안동 🏯", pct: 78 },
@@ -20,7 +22,7 @@ const TRAVEL_TAGS = [
   { label: "🎲 그때그때", bg: "#FFF0F5", color: "#C02060" },
 ];
 
-export default function Intro({ onStart }) {
+export default function Intro({ onStart, onAdminSkipToResult }) {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [activeCard, setActiveCard] = useState(null);
   const containerRef = useRef(null);
@@ -85,7 +87,7 @@ export default function Intro({ onStart }) {
             12가지 질문으로 여행 스타일을 분석해요
             <br />
             <span className="intro-subtitle-muted">
-              AI 맞춤 일정은 990원 · 퀴즈는 무료
+              AI 맞춤 일정 TOP 3 · 990원 · 퀴즈는 무료
             </span>
           </p>
         </div>
@@ -93,9 +95,9 @@ export default function Intro({ onStart }) {
 
       <div className="intro-body">
         <div className="intro-cta-wrap intro-cta-wrap--top">
-          <button type="button" onClick={onStart} className="intro-cta">
+          <MagneticButton type="button" onClick={onStart} className="intro-cta">
             내 여행지 찾기 →
-          </button>
+          </MagneticButton>
           <p className="intro-cta-hint">약 2분 · 12문항 · 퀴즈 무료</p>
         </div>
 
@@ -105,20 +107,12 @@ export default function Intro({ onStart }) {
             {CARDS.map((c, i) => (
               <div
                 key={c.name}
-                className="intro-card"
+                className={`intro-card${activeCard === i ? " is-active" : ""}`}
                 onMouseEnter={() => setActiveCard(i)}
                 onMouseLeave={() => setActiveCard(null)}
                 style={{
-                  border:
-                    activeCard === i
-                      ? `2px solid ${c.color}`
-                      : "1.5px solid #EAE6E0",
-                  boxShadow:
-                    activeCard === i
-                      ? `0 8px 24px ${c.color}22`
-                      : "0 2px 8px rgba(0,0,0,0.05)",
-                  transform: activeCard === i ? "translateY(-4px)" : "none",
-                  animation: `fadeUp .5s ${i * 0.06}s both`,
+                  "--card-accent": c.color,
+                  animation: `fadeUp 0.5s ${i * 0.06}s both`,
                 }}
               >
                 <div className="intro-card-emoji">{c.emoji}</div>
@@ -152,7 +146,7 @@ export default function Intro({ onStart }) {
                         i === 0
                           ? "linear-gradient(90deg,#1B7A56,#34D378)"
                           : "linear-gradient(90deg,#C8C0B6,#AAA09A)",
-                      animation: `barGrow .8s ${i * 0.15 + 0.2}s both`,
+                      animation: `barGrow 0.8s ${i * 0.15 + 0.2}s both`,
                     }}
                   />
                 </div>
@@ -176,6 +170,10 @@ export default function Intro({ onStart }) {
           </div>
         </div>
       </div>
+
+      {onAdminSkipToResult && (
+        <IntroAdminTools onSkipToResult={onAdminSkipToResult} />
+      )}
     </div>
   );
 }

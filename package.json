@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:full": "vercel dev --listen 5173",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@portone/browser-sdk": "^0.1.8",
+    "@tosspayments/tosspayments-sdk": "^2.7.0",
     "@vitejs/plugin-react": "^4.5.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

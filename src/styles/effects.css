@@ -1,0 +1,551 @@
+/* ── Design tokens (refresh) ── */
+:root {
+  --color-bg: #f3efe8;
+  --color-surface: #ffffff;
+  --color-surface-raised: #fafaf7;
+  --color-primary: #1a7a55;
+  --color-primary-dark: #0d3d2a;
+  --color-primary-light: #e8f7f0;
+  --color-accent: #34d378;
+  --color-text: #1a1a1a;
+  --color-muted: #8a8580;
+  --color-border: #e8e4de;
+  --shadow-sm: 0 2px 8px rgba(15, 45, 30, 0.05);
+  --shadow-md: 0 12px 40px rgba(15, 45, 30, 0.08);
+  --shadow-lg: 0 24px 56px rgba(15, 45, 30, 0.12);
+  --shadow-glow: 0 8px 32px rgba(26, 122, 85, 0.22);
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --dur-fast: 0.18s;
+  --dur-med: 0.38s;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  position: relative;
+  background: transparent;
+}
+
+.app-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 45% at 10% -5%, rgba(52, 211, 120, 0.14), transparent 55%),
+    radial-gradient(ellipse 50% 35% at 95% 10%, rgba(255, 190, 90, 0.1), transparent 50%),
+    radial-gradient(ellipse 40% 30% at 50% 100%, rgba(26, 122, 85, 0.06), transparent 50%),
+    var(--color-bg);
+}
+
+.app > .phase-view,
+.app > .intro {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: var(--layout-max);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--layout-pad);
+  padding-right: var(--layout-pad);
+  box-sizing: border-box;
+}
+
+/* Phase transitions */
+.phase-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: phaseIn var(--dur-med) var(--ease-out) both;
+}
+
+.phase-view > .quiz,
+.phase-view > .plan,
+.phase-view > .loading,
+.phase-view > .payment {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.phase-view > .result {
+  padding-left: 0;
+  padding-right: 0;
+  width: 100%;
+  max-width: min(100%, 1080px);
+}
+
+@keyframes phaseIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% center;
+  }
+  100% {
+    background-position: -200% center;
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes optIn {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes checkPop {
+  0% {
+    transform: scale(0);
+  }
+  70% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes floatY {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+/* Intro hero polish */
+.intro-body {
+  background: transparent;
+}
+
+.intro-hero {
+  background: linear-gradient(155deg, #081a12 0%, #0f2e20 38%, #1a6b4a 100%);
+}
+
+.intro-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 40%,
+    rgba(0, 0, 0, 0.25) 100%
+  );
+  pointer-events: none;
+}
+
+.intro-badge {
+  backdrop-filter: blur(8px);
+}
+
+.intro-cta {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+  box-shadow: var(--shadow-glow);
+}
+
+.intro-cta:hover {
+  box-shadow: 0 12px 40px rgba(26, 122, 85, 0.35);
+}
+
+.intro-cta .btn-label {
+  position: relative;
+  z-index: 1;
+}
+
+.intro-cta .btn-shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.18) 50%,
+    transparent 60%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.intro-card {
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    box-shadow var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast);
+  cursor: default;
+}
+
+.intro-card.is-active {
+  transform: translateY(-6px) scale(1.02);
+  border-color: var(--card-accent, #1b7a56) !important;
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--card-accent, #1b7a56) 18%, transparent);
+}
+
+.intro-tag {
+  transition: transform var(--dur-fast) var(--ease-spring);
+  cursor: default;
+}
+
+.intro-tag:hover {
+  transform: translateY(-2px) scale(1.03);
+}
+
+.intro-panel {
+  transition: box-shadow var(--dur-fast);
+}
+
+.intro-panel:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Quiz */
+.prog-bar {
+  height: 6px;
+  background: var(--color-border);
+  border-radius: 99px;
+}
+
+.prog-fill {
+  background: linear-gradient(
+    90deg,
+    var(--color-primary-dark),
+    var(--color-primary),
+    var(--color-accent)
+  );
+  background-size: 200% 100%;
+  border-radius: 99px;
+  transition: width 0.55s var(--ease-out);
+  box-shadow: 0 0 12px rgba(52, 211, 120, 0.35);
+}
+
+.q-card {
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+  transition: box-shadow var(--dur-fast);
+}
+
+.q-card:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+.q-emoji {
+  display: inline-block;
+  animation: floatY 3s ease-in-out infinite;
+}
+
+.opt {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast),
+    background var(--dur-fast),
+    box-shadow var(--dur-fast),
+    color var(--dur-fast);
+  animation: optIn 0.4s var(--ease-out) both;
+}
+
+.opt:hover:not(.sel) {
+  transform: translateX(4px);
+  box-shadow: var(--shadow-sm);
+}
+
+.opt:active:not(.sel) {
+  transform: scale(0.99);
+}
+
+.opt.sel {
+  box-shadow: var(--shadow-glow);
+  transform: translateX(0);
+}
+
+.opt.sel::after {
+  content: "✓";
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  animation: checkPop 0.35s var(--ease-spring) both;
+}
+
+.quiz-nav-btn--next {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform var(--dur-fast),
+    box-shadow var(--dur-fast),
+    background var(--dur-fast);
+}
+
+.quiz-nav-btn--next:not(:disabled):hover {
+  transform: translateY(-2px);
+}
+
+/* Loading */
+.loading-orbit {
+  width: clamp(52px, 7vw, 68px);
+  height: clamp(52px, 7vw, 68px);
+  border-radius: 50%;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-right-color: rgba(52, 211, 120, 0.45);
+  animation: spin 0.85s linear infinite;
+  position: relative;
+}
+
+.loading-orbit::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-bottom-color: var(--color-accent);
+  animation: spin 1.2s linear infinite reverse;
+}
+
+.loading-dots {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.loading-dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  animation: pulse-soft 1.2s ease-in-out infinite;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.loading-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.loading--compact {
+  padding: clamp(32px, 5vh, 48px) 0;
+  min-height: auto;
+  gap: 16px;
+}
+
+/* Result cards */
+.dest-card {
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast),
+    border-color var(--dur-fast);
+}
+
+.dest-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-md);
+  border-color: #1b7a56;
+}
+
+.dest-card:hover .dest-card-photo {
+  transform: scale(1.05);
+}
+
+.dest-card-photo-wrap {
+  overflow: hidden;
+  line-height: 0;
+}
+
+.dest-card-photo {
+  transition: transform 0.55s var(--ease-out);
+}
+
+.dest-card.top {
+  box-shadow: 0 4px 24px rgba(26, 122, 85, 0.12);
+}
+
+.dest-showcase .dest-card,
+.dest-list .dest-card {
+  animation: phaseIn 0.45s var(--ease-out) both;
+}
+
+.dest-list .dest-card:nth-child(1) {
+  animation-delay: 0.05s;
+}
+
+.dest-list .dest-card:nth-child(2) {
+  animation-delay: 0.12s;
+}
+
+.dest-list .dest-card:nth-child(3) {
+  animation-delay: 0.19s;
+}
+
+/* Plan */
+.plan-hero {
+  background: linear-gradient(135deg, var(--color-primary-dark), var(--color-primary));
+  box-shadow: var(--shadow-md);
+  transition: transform var(--dur-fast);
+}
+
+.day-card {
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast);
+  animation: phaseIn 0.5s var(--ease-out) both;
+}
+
+.day-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+
+.plan-days .day-card:nth-child(2) {
+  animation-delay: 0.08s;
+}
+
+.plan-days .day-card:nth-child(3) {
+  animation-delay: 0.16s;
+}
+
+.plan-days .day-card:nth-child(4) {
+  animation-delay: 0.24s;
+}
+
+.sch-item {
+  animation: optIn 0.35s var(--ease-out) both;
+}
+
+.tips-card,
+.food-tag {
+  transition: transform var(--dur-fast) var(--ease-spring);
+}
+
+.food-tag:hover {
+  transform: translateY(-2px);
+}
+
+/* Payment */
+.payment-card {
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast);
+}
+
+.payment-card:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+.payment-photo-img {
+  transition: transform 0.6s var(--ease-out);
+}
+
+.payment-card:hover .payment-photo-img {
+  transform: scale(1.04);
+}
+
+.payment-btn {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  transition:
+    box-shadow var(--dur-fast);
+}
+
+.payment-btn .btn-label {
+  position: relative;
+  z-index: 1;
+}
+
+.payment-btn:not(:disabled):hover {
+  box-shadow: var(--shadow-glow);
+}
+
+.payment-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.opt:focus-visible,
+.intro-cta:focus-visible,
+.quiz-nav-btn:focus-visible,
+.dest-card:focus-visible,
+.payment-btn:focus-visible,
+.btn-solid:focus-visible,
+.btn-outline:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.btn-solid,
+.btn-outline,
+.btn-retry {
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast),
+    background var(--dur-fast);
+}
+
+.btn-solid:hover,
+.btn-outline:hover,
+.btn-retry:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .intro-cta .btn-shine {
+    display: none;
+  }
+}
