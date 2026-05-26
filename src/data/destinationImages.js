@@ -1,15 +1,16 @@
 /**
- * 여행지별 사진 — 위키백과·위키미디어(한국 관광 풍경) 썸네일 1280px
- * 출처: Wikimedia Commons (CC, 파일별 라이선스 참조)
- * 갱신: node scripts/rebuild-scenic-images.mjs && node scripts/patch-scenic-fallbacks.mjs && node scripts/apply-scenic-gallery.mjs
+ * 여행지별 사진
+ * - 1순위: Pexels (scripts/fetch-pexels-images.mjs 로 갱신)
+ * - 2순위: Wikimedia Commons 1280px
  */
+import { PEXELS_GALLERY } from "./pexelsGallery.js";
 
 const W = (path) =>
   `https://upload.wikimedia.org/wikipedia/commons/thumb/${path}`;
 
 const IMAGES = {
   안동: W("1/1f/A_bird%27s_eye_view_of_the_Hahoe_Folk_Village_%284458648859%29.jpg/1280px-A_bird%27s_eye_view_of_the_Hahoe_Folk_Village_%284458648859%29.jpg"),
-  군산: W("0/0d/Korea_Seonyudo_Summer_20140805_18_%2814862141903%29.jpg/1280px-Korea_Seonyudo_Summer_20140805_18_%2814862141903%29.jpg"),
+  군산: W("3/3b/Gunsan_View_from_Eunpa_Lake.jpg/1280px-Gunsan_View_from_Eunpa_Lake.jpg"),
   문경: W("d/d2/Saejae_third_gate_backside.jpg/1280px-Saejae_third_gate_backside.jpg"),
   영덕: W("7/7e/Korea-Yeongdeok_County-Mountain-01.jpg/1280px-Korea-Yeongdeok_County-Mountain-01.jpg"),
   울진: W("e/e4/Korea_Route7_01_%2816696038086%29.jpg/1280px-Korea_Route7_01_%2816696038086%29.jpg"),
@@ -62,8 +63,9 @@ const GALLERY_EXTRA = {
     W("5/5d/Hahoe_Folk_Village_05.jpg/1280px-Hahoe_Folk_Village_05.jpg"),
   ],
   군산: [
+    W("0/0d/Korea_Seonyudo_Summer_20140805_18_%2814862141903%29.jpg/1280px-Korea_Seonyudo_Summer_20140805_18_%2814862141903%29.jpg"),
+    W("e/e9/Eunpa_Lake_Park_Bridge.jpg/1280px-Eunpa_Lake_Park_Bridge.jpg"),
     W("1/1b/Korea_Seonyudo_Summer_20140805_10_%2814862140773%29.jpg/1280px-Korea_Seonyudo_Summer_20140805_10_%2814862140773%29.jpg"),
-    W("3/38/Korea_Seonyudo_Summer_20140805_08_%2814841920672%29.jpg/1280px-Korea_Seonyudo_Summer_20140805_08_%2814841920672%29.jpg"),
     W("5/54/Seonyu_island.JPG/1280px-Seonyu_island.JPG"),
   ],
   문경: [
@@ -236,13 +238,25 @@ const GALLERY_EXTRA = {
 
 const FALLBACK = IMAGES.안동;
 
+function pexelsUrls(name) {
+  const photos = PEXELS_GALLERY[name]?.photos;
+  if (!photos?.length) return null;
+  return photos.map((p) => p.src).filter(Boolean);
+}
+
 export function getDestinationImage(name) {
+  const pexels = pexelsUrls(name);
+  if (pexels?.[0]) return pexels[0];
   return IMAGES[name] || FALLBACK;
 }
 
 /** 일정 화면용 사진 목록 (해당 지역 사진만) */
 export function getDestinationGallery(name, count = 4) {
-  const main = getDestinationImage(name);
+  const pexels = pexelsUrls(name);
+  if (pexels?.length) {
+    return [...new Set(pexels)].slice(0, count);
+  }
+  const main = IMAGES[name] || FALLBACK;
   const extras = (GALLERY_EXTRA[name] || []).filter(
     (url) => url && url !== main,
   );
@@ -250,9 +264,18 @@ export function getDestinationGallery(name, count = 4) {
   return unique.slice(0, count);
 }
 
-/** 위키미디어 파일 페이지 링크 (출처 표기용) */
+/** 사진 출처 링크 (출처 표기용) */
 export function getImageCredit(name) {
-  const url = getDestinationImage(name);
+  const pexelsFirst = PEXELS_GALLERY[name]?.photos?.[0];
+  if (pexelsFirst?.page) {
+    const who = pexelsFirst.photographer || "Pexels";
+    return {
+      label: `Pexels · ${who}`,
+      href: pexelsFirst.page,
+    };
+  }
+
+  const url = IMAGES[name] || FALLBACK;
   if (!url?.includes("wikimedia.org")) {
     return { label: "Wikimedia Commons", href: "https://commons.wikimedia.org/" };
   }

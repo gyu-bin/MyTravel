@@ -16,6 +16,7 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 /** 수동 큐레이션 (군산·무주·인제 등) */
 const MANUAL = {
   군산: [
+    "3/3b/Gunsan_View_from_Eunpa_Lake.jpg/1280px-Gunsan_View_from_Eunpa_Lake.jpg",
     "0/0d/Korea_Seonyudo_Summer_20140805_18_%2814862141903%29.jpg/1280px-Korea_Seonyudo_Summer_20140805_18_%2814862141903%29.jpg",
     "1/1b/Korea_Seonyudo_Summer_20140805_10_%2814862140773%29.jpg/1280px-Korea_Seonyudo_Summer_20140805_10_%2814862140773%29.jpg",
     "3/38/Korea_Seonyudo_Summer_20140805_08_%2814841920672%29.jpg/1280px-Korea_Seonyudo_Summer_20140805_08_%2814841920672%29.jpg",

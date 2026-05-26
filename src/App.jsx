@@ -8,6 +8,7 @@ import MagneticButton from "./components/MagneticButton";
 import { questions } from "./data/questions";
 import { DESTINATIONS } from "./data/destinations";
 import DestCardGallery from "./components/DestCardGallery";
+import ResultShare from "./components/ResultShare";
 import { scoreDestinations } from "./utils/scoreDestinations";
 import { fetchTravelPlan } from "./utils/fetchTravelPlan";
 import {
@@ -394,6 +395,8 @@ export default function App() {
               );
             })}
           </div>
+
+          <ResultShare top3={top3} destinations={DESTINATIONS} />
 
           {!hasPaid && (
             <PaymentPanel

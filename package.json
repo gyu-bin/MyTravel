@@ -7,6 +7,8 @@
     "dev": "vite",
     "dev:full": "vercel dev --listen 5173",
     "build": "vite build",
+    "images:pexels": "node scripts/fetch-pexels-images.mjs",
+    "images:pexels:dedupe": "node scripts/dedupe-pexels-gallery.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

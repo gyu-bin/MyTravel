@@ -166,6 +166,15 @@
   border-top-color: var(--color-border);
 }
 
+[data-theme="dark"] .result-share {
+  border-color: var(--color-border);
+  background: linear-gradient(180deg, #1e2420 0%, #1a1f1c 100%);
+}
+
+[data-theme="dark"] .result-share-preview {
+  color: var(--color-muted);
+}
+
 [data-theme="dark"] .food-tag {
   background: #3d2a18;
   color: #ffb074;
@@ -198,12 +207,12 @@
   color: #eceae6;
 }
 
-[data-theme="dark"] .dest-carousel-dot {
-  background: #4a524e;
+[data-theme="dark"] .dest-card-carousel-dots .dest-carousel-dot {
+  background: rgba(255, 255, 255, 0.4);
 }
 
 [data-theme="dark"] .dest-carousel-dot.is-active {
-  background: var(--color-primary);
+  background: #fff;
 }
 
 [data-theme="dark"] .dest-card-gallery-credit {

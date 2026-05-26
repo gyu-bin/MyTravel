@@ -93,26 +93,30 @@ export default function DestCardGallery({ name }) {
             {index + 1} / {photos.length}
           </span>
         )}
-      </div>
 
-      {hasMultiple && (
-        <div className="dest-card-carousel-dots" role="tablist" aria-label="사진 선택">
-          {photos.map((_, i) => (
-            <button
-              key={i}
-              type="button"
-              role="tab"
-              aria-selected={i === index}
-              aria-label={`${i + 1}번째 사진`}
-              className={`dest-carousel-dot${i === index ? " is-active" : ""}`}
-              onClick={(e) => {
-                stopCardClick(e);
-                scrollTo(i);
-              }}
-            />
-          ))}
-        </div>
-      )}
+        {hasMultiple && (
+          <div
+            className="dest-card-carousel-dots"
+            role="tablist"
+            aria-label="사진 선택"
+          >
+            {photos.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                role="tab"
+                aria-selected={i === index}
+                aria-label={`${i + 1}번째 사진`}
+                className={`dest-carousel-dot${i === index ? " is-active" : ""}`}
+                onClick={(e) => {
+                  stopCardClick(e);
+                  scrollTo(i);
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
       <PhotoCredit name={name} className="dest-card-gallery-credit" />
     </div>
