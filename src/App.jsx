@@ -13,13 +13,14 @@ import { scoreDestinations } from "./utils/scoreDestinations";
 import { fetchTravelPlan } from "./utils/fetchTravelPlan";
 import {
   PLAN_PRICE,
-  loadPaymentSession,
+  completePaddleRedirect,
   completeRedirectPayment,
   consumePaymentReturnBootstrap,
   hasPlanAccess,
   markPlanAccessGranted,
   clearPlanAccess,
 } from "./utils/payment";
+import { isPaymentDemandTest, getPaymentProvider } from "./lib/paddleConfig";
 import { buildRandomAnswers, tryUnlockAdminFromUrl } from "./utils/admin";
 
 const RANK_LABELS = ["🥇 1위", "🥈 2위", "🥉 3위"];
@@ -50,12 +51,20 @@ export default function App() {
   );
   const [planError, setPlanError] = useState(paymentBootstrap?.planError ?? null);
   const [hasPaid, setHasPaid] = useState(() => {
-    if (paymentBootstrap?.pendingPayment) return true;
+    if (
+      paymentBootstrap?.pendingPayment ||
+      paymentBootstrap?.pendingPaddleTransaction
+    ) {
+      return true;
+    }
     return hasPlanAccess();
   });
   const [anim, setAnim] = useState(true);
   const advanceTimerRef = useRef(null);
   const pendingPaymentRef = useRef(paymentBootstrap?.pendingPayment ?? null);
+  const pendingPaddleRef = useRef(
+    paymentBootstrap?.pendingPaddleTransaction ?? null,
+  );
 
   const progress = ((current + 1) / questions.length) * 100;
   const q = questions[current];
@@ -72,6 +81,22 @@ export default function App() {
   }, [phase, hasPaid, planLoading]);
 
   useEffect(() => {
+    const paddleTxn = pendingPaddleRef.current;
+    if (paddleTxn) {
+      pendingPaddleRef.current = null;
+      completePaddleRedirect(paddleTxn)
+        .then(async () => {
+          setHasPaid(true);
+          await loadAllPlansForDests(destinations, answers);
+          scrollToPlans();
+        })
+        .catch(() => {
+          setPlanLoading(false);
+          setPlanError("결제 확인에 실패했습니다. 다시 시도해주세요.");
+        });
+      return;
+    }
+
     const pending = pendingPaymentRef.current;
     if (!pending) return;
     pendingPaymentRef.current = null;
@@ -349,7 +374,17 @@ export default function App() {
           <p className="result-desc">
             {hasPaid
               ? "결제 완료 — 아래에서 1·2·3위 AI 맞춤 일정을 모두 확인하세요"
-              : (
+              : isPaymentDemandTest() ? (
+                <>
+                  숨은 국내 여행지 TOP 3 — 지금은{" "}
+                  <strong>무료 체험</strong>으로 AI 맞춤 일정 3종 모두
+                </>
+              ) : getPaymentProvider() === "qr" ? (
+                <>
+                  숨은 국내 여행지 TOP 3 — 토스 QR{" "}
+                  <strong>{PLAN_PRICE.toLocaleString()}원</strong> 송금 후 AI 일정 3종
+                </>
+              ) : (
                 <>
                   숨은 국내 여행지 TOP 3 — AI 맞춤 일정{" "}
                   <strong>{PLAN_PRICE.toLocaleString()}원</strong>에 3종 모두

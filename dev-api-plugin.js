@@ -35,8 +35,26 @@ function createResponseAdapter(res) {
 }
 
 const ROUTES = {
-  "/api/prepare-order": () => import("./api/prepare-order.js"),
-  "/api/confirm-payment": () => import("./api/confirm-payment.js"),
+  "/api/prepare-order": {
+    methods: ["POST"],
+    load: () => import("./api/prepare-order.js"),
+  },
+  "/api/confirm-payment": {
+    methods: ["POST"],
+    load: () => import("./api/confirm-payment.js"),
+  },
+  "/api/verify-paddle": {
+    methods: ["POST"],
+    load: () => import("./api/verify-paddle.js"),
+  },
+  "/api/payment-demand": {
+    methods: ["POST"],
+    load: () => import("./api/payment-demand.js"),
+  },
+  "/api/payment-demand-stats": {
+    methods: ["GET"],
+    load: () => import("./api/payment-demand-stats.js"),
+  },
 };
 
 export function devApiPlugin(mode) {
@@ -47,11 +65,12 @@ export function devApiPlugin(mode) {
     name: "dev-api",
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
-        const pathname = req.url?.split("?")[0];
-        const loadHandler = ROUTES[pathname];
-        if (!loadHandler) return next();
+        const url = new URL(req.url || "/", "http://localhost");
+        const pathname = url.pathname;
+        const route = ROUTES[pathname];
+        if (!route) return next();
 
-        if (req.method !== "POST") {
+        if (!route.methods.includes(req.method)) {
           res.statusCode = 405;
           res.setHeader("Content-Type", "application/json");
           res.end(JSON.stringify({ ok: false, error: "Method not allowed" }));
@@ -59,11 +78,17 @@ export function devApiPlugin(mode) {
         }
 
         try {
-          const { default: handler } = await loadHandler();
-          const body = await readJsonBody(req);
+          const { default: handler } = await route.load();
+          const body =
+            req.method === "POST" ? await readJsonBody(req) : undefined;
           await handler(
-            { method: req.method, body },
-            createResponseAdapter(res)
+            {
+              method: req.method,
+              body,
+              headers: req.headers,
+              query: Object.fromEntries(url.searchParams),
+            },
+            createResponseAdapter(res),
           );
         } catch (err) {
           res.statusCode = 500;
@@ -72,7 +97,7 @@ export function devApiPlugin(mode) {
             JSON.stringify({
               ok: false,
               error: err.message || "Internal server error",
-            })
+            }),
           );
         }
       });

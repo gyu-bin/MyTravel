@@ -12,7 +12,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@paddle/paddle-js": "^1.6.4",
     "@tosspayments/tosspayments-sdk": "^2.7.0",
+    "@upstash/redis": "^1.38.0",
     "@vitejs/plugin-react": "^4.5.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

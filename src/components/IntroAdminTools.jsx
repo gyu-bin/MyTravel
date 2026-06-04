@@ -1,4 +1,5 @@
 import { useState } from "react";
+import PaymentDemandStats from "./PaymentDemandStats";
 import {
   isAdminToolsEnabled,
   isAdminUnlocked,
@@ -53,6 +54,7 @@ export default function IntroAdminTools({ onSkipToResult }) {
       >
         {busy ? "분석 중…" : "🎲 랜덤 답변 → 결과 바로가기"}
       </button>
+      <PaymentDemandStats />
     </div>
   );
 }

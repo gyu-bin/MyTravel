@@ -171,10 +171,6 @@
   background: linear-gradient(180deg, #1e2420 0%, #1a1f1c 100%);
 }
 
-[data-theme="dark"] .result-share-preview {
-  color: var(--color-muted);
-}
-
 [data-theme="dark"] .food-tag {
   background: #3d2a18;
   color: #ffb074;

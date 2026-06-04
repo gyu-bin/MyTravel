@@ -1,154 +1,103 @@
-import { useEffect, useRef, useState } from "react";
-import { loadTossPayments } from "@tosspayments/tosspayments-sdk";
+import { useEffect, useState } from "react";
 import {
+  getPaymentProvider,
+  getQrImageUrl,
+  isPaymentDemandTest,
+  isPaymentMock,
   PLAN_PRICE,
-  isPaymentMockMode,
-  isPaymentConfigured,
-  requestMockPayment,
-  getTossConfig,
-  getCustomerKey,
+} from "../lib/paddleConfig.js";
+import {
+  completeQrPayment,
   createOrderId,
+  openPaddleCheckout,
+  registerPaddleCheckoutHandler,
+  runMockPayment,
   savePaymentSession,
-  buildOrderName,
-  getPaymentSuccessUrl,
-  getPaymentFailUrl,
-  prepareOrder,
-} from "../utils/payment";
+} from "../utils/payment.js";
+import { openTossQrPaymentWindow } from "../utils/tossQrPayment.js";
+import { trackPaymentDemand } from "../utils/trackPaymentDemand.js";
 
 export default function PaymentPanel({ destinations, answers, onPaid }) {
-  const [modalOpen, setModalOpen] = useState(false);
-  const [widgetReady, setWidgetReady] = useState(false);
-  const [paying, setPaying] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const widgetsRef = useRef(null);
-  const initPromiseRef = useRef(null);
-  const mock = isPaymentMockMode();
-  const configured = isPaymentConfigured();
+  const provider = getPaymentProvider();
+  const mock = isPaymentMock();
+  const demandTest = isPaymentDemandTest();
   const top3 = destinations.slice(0, 3);
-
-  function resetWidget() {
-    widgetsRef.current = null;
-    initPromiseRef.current = null;
-    setWidgetReady(false);
-  }
-
-  function closeModal() {
-    setModalOpen(false);
-    setPaying(false);
-    resetWidget();
-  }
-
-  async function ensureWidgetReady() {
-    if (widgetsRef.current) return widgetsRef.current;
-
-    if (!initPromiseRef.current) {
-      initPromiseRef.current = (async () => {
-        const { clientKey } = getTossConfig();
-        const tossPayments = await loadTossPayments(clientKey);
-        const widgets = tossPayments.widgets({ customerKey: getCustomerKey() });
-
-        await widgets.setAmount({
-          currency: "KRW",
-          value: PLAN_PRICE,
-        });
-
-        await widgets.renderPaymentMethods({
-          selector: "#toss-payment-method",
-          variantKey: "DEFAULT",
-        });
-
-        await widgets.renderAgreement({
-          selector: "#toss-agreement",
-          variantKey: "AGREEMENT",
-        });
-
-        widgetsRef.current = widgets;
-        return widgets;
-      })();
-    }
-
-    return initPromiseRef.current;
-  }
+  const qrImage = getQrImageUrl();
 
   useEffect(() => {
-    if (!modalOpen || mock) return;
-
-    let cancelled = false;
-
-    (async () => {
-      try {
-        await ensureWidgetReady();
-        if (!cancelled) setWidgetReady(true);
-      } catch (err) {
-        if (!cancelled) {
-          setError(err.message || "결제 위젯을 불러오지 못했습니다.");
-          closeModal();
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [modalOpen, mock]);
+    registerPaddleCheckoutHandler(onPaid);
+  }, [onPaid]);
 
   useEffect(() => {
-    if (!modalOpen) return;
-
+    if (!qrOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-
     function onKeyDown(e) {
-      if (e.key === "Escape" && !paying) closeModal();
+      if (e.key === "Escape" && !busy) setQrOpen(false);
     }
-
     window.addEventListener("keydown", onKeyDown);
     return () => {
       document.body.style.overflow = prev;
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [modalOpen, paying]);
+  }, [qrOpen, busy]);
 
   async function handleOpenCheckout() {
     setError(null);
-
-    if (mock) {
-      setPaying(true);
-      try {
-        onPaid();
-        await requestMockPayment({ answers, destinations: top3 });
-      } catch (err) {
-        setError(err.message || "결제에 실패했습니다.");
-        setPaying(false);
-      }
-      return;
-    }
-
-    resetWidget();
-    setModalOpen(true);
-  }
-
-  async function handleConfirmPay() {
-    setPaying(true);
-    setError(null);
+    setBusy(true);
+    const orderId = createOrderId();
 
     try {
-      const widgets = await ensureWidgetReady();
-
-      const orderId = createOrderId();
+      trackPaymentDemand("intent");
       savePaymentSession({ answers, destinations: top3, orderId });
 
-      await prepareOrder(orderId);
+      if (mock || provider === "mock") {
+        await runMockPayment();
+        trackPaymentDemand("complete");
+        onPaid?.();
+        return;
+      }
 
-      await widgets.requestPayment({
-        orderId,
-        orderName: buildOrderName(top3),
-        successUrl: getPaymentSuccessUrl(),
-        failUrl: getPaymentFailUrl(),
-      });
+      if (provider === "toss-auto") {
+        await openTossQrPaymentWindow({ orderId, destinations: top3 });
+        return;
+      }
+
+      if (provider === "qr") {
+        setQrOpen(true);
+        return;
+      }
+
+      if (provider === "paddle") {
+        await openPaddleCheckout({
+          orderId,
+          customData: { destinations: top3.join(",") },
+        });
+        return;
+      }
+
+      setError("결제가 설정되지 않았습니다.");
     } catch (err) {
-      setError(err.message || "결제에 실패했습니다.");
-      setPaying(false);
+      setError(err?.message || "결제를 시작할 수 없습니다.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function handleQrComplete() {
+    setBusy(true);
+    try {
+      completeQrPayment();
+      trackPaymentDemand("complete");
+      setQrOpen(false);
+      onPaid?.();
+    } catch (err) {
+      setError(err.message || "일정을 열 수 없습니다.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -164,51 +113,61 @@ export default function PaymentPanel({ destinations, answers, onPaid }) {
             <ul className="payment-panel-features">
               <li>1·2·3위 맞춤 일정 각 1종</li>
               <li>일자별 코스 · 현지 꿀팁 · 맛집</li>
-              <li>결제 후 이 화면에서 3곳 모두 확인</li>
+              <li>
+                {provider === "toss-auto"
+                  ? "토스 QR 결제 후 자동으로 일정이 열려요"
+                  : `토스 QR로 ${PLAN_PRICE.toLocaleString()}원 송금`}
+              </li>
             </ul>
           </div>
 
-          {mock && configured && (
+          {demandTest && (
             <p className="payment-mock-note">
-              VITE_PAYMENT_MOCK=true — 결제 없이 테스트합니다.
+              지금은 <strong>무료 체험</strong> 기간입니다.
             </p>
           )}
 
-          {error && !modalOpen && <div className="plan-error">{error}</div>}
+          {error && <div className="plan-error">{error}</div>}
 
           <button
             type="button"
             className="payment-panel-btn"
             onClick={handleOpenCheckout}
-            disabled={paying && !modalOpen}
+            disabled={busy && !qrOpen}
           >
-            {paying && !modalOpen ? "처리 중..." : "990원으로 AI일정보기"}
+            {busy && !qrOpen
+              ? "여는 중…"
+              : demandTest
+                ? "AI 일정 무료로 보기"
+                : provider === "toss-auto"
+                  ? `${PLAN_PRICE.toLocaleString()}원 · 토스페이 QR`
+                  : `${PLAN_PRICE.toLocaleString()}원 · QR 보기`}
           </button>
         </div>
       </section>
 
-      {modalOpen && !mock && (
+      {qrOpen && (
         <div
           className="payment-modal-overlay"
           role="presentation"
-          onClick={paying ? undefined : closeModal}
+          onClick={busy ? undefined : () => setQrOpen(false)}
         >
           <div
-            className="payment-modal"
+            className="payment-modal payment-qr-modal"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="payment-modal-title"
+            aria-labelledby="payment-qr-title"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="payment-modal-header">
-              <h3 id="payment-modal-title" className="payment-modal-title">
-                결제하기
+              <h3 id="payment-qr-title" className="payment-modal-title">
+                토스 QR 송금
               </h3>
               <button
                 type="button"
                 className="payment-modal-close"
-                onClick={closeModal}
-                disabled={paying}
+                onClick={() => setQrOpen(false)}
+                disabled={busy}
                 aria-label="닫기"
               >
                 ×
@@ -216,27 +175,35 @@ export default function PaymentPanel({ destinations, answers, onPaid }) {
             </div>
 
             <p className="payment-modal-amount">
-              TOP 3 AI 맞춤 일정{" "}
+              AI 맞춤 일정 3종{" "}
               <strong>{PLAN_PRICE.toLocaleString()}원</strong>
             </p>
 
-            <div className="payment-modal-widget">
-              <div id="toss-payment-method" />
-              <div id="toss-agreement" />
-              {!widgetReady && (
-                <p className="payment-modal-loading">결제 수단을 불러오는 중…</p>
-              )}
-            </div>
+            <ol className="payment-qr-steps">
+              <li>토스 앱 → QR 스캔</li>
+              <li>
+                <strong>{PLAN_PRICE.toLocaleString()}원</strong> 송금
+              </li>
+              <li>송금 후 아래 「송금 완료」 버튼</li>
+            </ol>
 
-            {error && <div className="plan-error">{error}</div>}
+            <div className="payment-qr-frame">
+              <img
+                src={qrImage}
+                alt={`토스 QR — ${PLAN_PRICE.toLocaleString()}원 송금`}
+                className="payment-qr-image"
+                width={280}
+                height={280}
+              />
+            </div>
 
             <button
               type="button"
               className="payment-panel-btn payment-modal-submit"
-              onClick={handleConfirmPay}
-              disabled={paying || !widgetReady}
+              onClick={handleQrComplete}
+              disabled={busy}
             >
-              {paying ? "결제 진행 중..." : `${PLAN_PRICE.toLocaleString()}원 결제하기`}
+              {busy ? "열리는 중…" : "송금 완료"}
             </button>
           </div>
         </div>

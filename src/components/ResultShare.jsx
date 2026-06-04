@@ -1,6 +1,5 @@
 import { useCallback, useState } from "react";
 import {
-  buildResultShareContent,
   canUseNativeShare,
   copyResultText,
   copyShareLink,
@@ -49,11 +48,6 @@ export default function ResultShare({ top3, destinations }) {
     }
   };
 
-  const preview = buildResultShareContent(top3, destinations).text
-    .split("\n")
-    .slice(0, 5)
-    .join("\n");
-
   return (
     <section className="result-share" aria-label="결과 공유">
       <p className="result-share-label">친구에게 공유하기</p>
@@ -82,9 +76,6 @@ export default function ResultShare({ top3, destinations }) {
           링크 복사
         </button>
       </div>
-      <p className="result-share-preview" aria-hidden>
-        {preview}
-      </p>
       {feedback ? (
         <p className="result-share-feedback" role="status" aria-live="polite">
           {feedback}
