@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>결제</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        min-height: 100vh;
+        overflow: auto;
+        background: #fff;
+        color: #1a1a1a;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      @media (min-width: 661px) {
+        html,
+        body {
+          min-width: 660px;
+          min-height: 825px;
+        }
+      }
+
+      #boot {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        display: grid;
+        place-items: center;
+        background: #fff;
+        transition: opacity 0.2s ease;
+      }
+
+      #boot.is-hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .boot-inner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding: 24px;
+        text-align: center;
+      }
+
+      .boot-spinner {
+        width: 28px;
+        height: 28px;
+        border: 3px solid #e8e8e8;
+        border-top-color: #2563eb;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .boot-inner p {
+        margin: 0;
+        font-size: 0.9375rem;
+        color: #555;
+      }
+
+      #boot-error {
+        color: #c0392b;
+        font-size: 0.875rem;
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="boot">
+      <div class="boot-inner">
+        <div class="boot-spinner" aria-hidden="true"></div>
+        <p id="boot-text">결제창을 여는 중…</p>
+        <p id="boot-error" hidden></p>
+      </div>
+    </div>
+
+    <script src="https://pay.nicepay.co.kr/v1/js/"></script>
+    <script>
+      (function () {
+        var boot = document.getElementById("boot");
+        var bootText = document.getElementById("boot-text");
+        var bootError = document.getElementById("boot-error");
+        var started = false;
+
+        function readLaunchConfig() {
+          var keys = ["mytravel-nicepay-launch"];
+          for (var i = 0; i < keys.length; i++) {
+            try {
+              var raw =
+                localStorage.getItem(keys[i]) ||
+                sessionStorage.getItem(keys[i]);
+              if (!raw) continue;
+              var parsed = JSON.parse(raw);
+              if (Date.now() - parsed.ts > 10 * 60 * 1000) continue;
+              return parsed;
+            } catch (e) {}
+          }
+          return null;
+        }
+
+        function clearLaunchConfig() {
+          try {
+            localStorage.removeItem("mytravel-nicepay-launch");
+            sessionStorage.removeItem("mytravel-nicepay-launch");
+          } catch (e) {}
+        }
+
+        function notifyOpener(payload) {
+          try {
+            if (window.opener && !window.opener.closed) {
+              window.opener.postMessage(payload, location.origin);
+            }
+          } catch (e) {}
+          try {
+            var ch = new BroadcastChannel("mytravel-payment");
+            ch.postMessage(payload);
+            ch.close();
+          } catch (e) {}
+        }
+
+        function fail(msg) {
+          bootError.hidden = false;
+          bootError.textContent = msg;
+          bootText.textContent = "결제를 시작할 수 없습니다";
+          notifyOpener({
+            type: "mytravel-nicepay",
+            status: "fail",
+            message: msg,
+          });
+          if (!window.opener || window.opener.closed) {
+            var back =
+              "/?payment=fail&pg=nicepay&message=" + encodeURIComponent(msg);
+            setTimeout(function () {
+              location.replace(location.origin + back);
+            }, 1200);
+          }
+        }
+
+        function hideBoot() {
+          boot.classList.add("is-hidden");
+          setTimeout(function () {
+            boot.style.display = "none";
+          }, 220);
+        }
+
+        function startPayment(config) {
+          if (started) return;
+          started = true;
+
+          if (!window.AUTHNICE || !window.AUTHNICE.requestPay) {
+            fail("결제 SDK를 불러오지 못했습니다.");
+            return;
+          }
+
+          hideBoot();
+          clearLaunchConfig();
+
+          AUTHNICE.requestPay({
+            clientId: config.clientId,
+            method: "cardAndEasyPay",
+            orderId: config.orderId,
+            amount: config.amount,
+            goodsName: config.goodsName,
+            returnUrl: config.returnUrl,
+            disableScroll: false,
+            zIdxHigher: true,
+            fnError: function (result) {
+              fail(result?.errorMsg || "결제창을 열 수 없습니다.");
+            },
+          });
+        }
+
+        function tryStart() {
+          var config = readLaunchConfig();
+          if (config) {
+            startPayment(config);
+            return;
+          }
+          fail("결제 정보를 불러오지 못했습니다. 다시 시도해 주세요.");
+        }
+
+        window.addEventListener("message", function (e) {
+          if (e.origin !== location.origin) return;
+          if (e.data?.type !== "mytravel-nicepay-start") return;
+          startPayment(e.data);
+        });
+
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", function () {
+            setTimeout(tryStart, 80);
+          });
+        } else {
+          setTimeout(tryStart, 80);
+        }
+      })();
+    </script>
+  </body>
+</html>

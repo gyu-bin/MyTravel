@@ -21,11 +21,36 @@ function readJsonBody(req) {
   });
 }
 
+function readFormBody(req) {
+  return new Promise((resolve, reject) => {
+    let data = "";
+    req.on("data", (chunk) => {
+      data += chunk;
+    });
+    req.on("end", () => {
+      if (!data) {
+        resolve({});
+        return;
+      }
+      const params = new URLSearchParams(data);
+      resolve(Object.fromEntries(params.entries()));
+    });
+    req.on("error", reject);
+  });
+}
+
 function createResponseAdapter(res) {
   return {
     status(code) {
       res.statusCode = code;
       return this;
+    },
+    setHeader(name, value) {
+      res.setHeader(name, value);
+      return this;
+    },
+    end(payload) {
+      res.end(payload);
     },
     json(payload) {
       res.setHeader("Content-Type", "application/json");
@@ -37,18 +62,32 @@ function createResponseAdapter(res) {
 const ROUTES = {
   "/api/prepare-order": {
     methods: ["POST"],
+    body: "json",
     load: () => import("./api/prepare-order.js"),
   },
   "/api/confirm-payment": {
     methods: ["POST"],
+    body: "json",
     load: () => import("./api/confirm-payment.js"),
   },
   "/api/verify-paddle": {
     methods: ["POST"],
+    body: "json",
     load: () => import("./api/verify-paddle.js"),
+  },
+  "/api/verify-nicepay": {
+    methods: ["POST"],
+    body: "json",
+    load: () => import("./api/verify-nicepay.js"),
+  },
+  "/api/nicepay-return": {
+    methods: ["POST"],
+    body: "form",
+    load: () => import("./api/nicepay-return.js"),
   },
   "/api/payment-demand": {
     methods: ["POST"],
+    body: "json",
     load: () => import("./api/payment-demand.js"),
   },
   "/api/payment-demand-stats": {
@@ -79,8 +118,11 @@ export function devApiPlugin(mode) {
 
         try {
           const { default: handler } = await route.load();
-          const body =
-            req.method === "POST" ? await readJsonBody(req) : undefined;
+          let body;
+          if (req.method === "POST") {
+            body =
+              route.body === "form" ? await readFormBody(req) : await readJsonBody(req);
+          }
           await handler(
             {
               method: req.method,

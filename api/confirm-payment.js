@@ -36,7 +36,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, mock: true, orderId });
   }
 
-  const pending = consumePendingOrder(orderId);
+  const pending = await consumePendingOrder(orderId);
   if (!pending || pending.amount !== Number(amount)) {
     return res.status(400).json({
       ok: false,

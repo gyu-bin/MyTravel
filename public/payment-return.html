@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>결제 확인 중</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        font-family: system-ui, sans-serif;
+        background: #fff;
+        color: #333;
+        text-align: center;
+      }
+
+      .done {
+        max-width: 320px;
+      }
+
+      .done h1 {
+        margin: 0 0 8px;
+        font-size: 1.125rem;
+      }
+
+      .done p {
+        margin: 0;
+        font-size: 0.9375rem;
+        line-height: 1.5;
+        color: #555;
+      }
+
+      .done.fail h1 {
+        color: #c0392b;
+      }
+    </style>
+  </head>
+  <body>
+    <p id="status">결제 확인 중…</p>
+    <script>
+      (function () {
+        var statusEl = document.getElementById("status");
+        var p = new URLSearchParams(location.search);
+        var status = p.get("status") || "fail";
+        var orderId = p.get("orderId") || "";
+        var amount = p.get("amount") || "990";
+        var message = p.get("message") || "";
+        var payload = {
+          type: "mytravel-nicepay",
+          status: status,
+          orderId: orderId,
+          amount: Number(amount),
+          message: message,
+        };
+
+        if (status === "success" && orderId) {
+          var stored = JSON.stringify({
+            orderId: orderId,
+            amount: Number(amount),
+            ts: Date.now(),
+          });
+          try {
+            localStorage.setItem("mytravel-nicepay-return", stored);
+            sessionStorage.setItem("mytravel-nicepay-return", stored);
+          } catch (e) {}
+        }
+
+        try {
+          var ch = new BroadcastChannel("mytravel-payment");
+          ch.postMessage(payload);
+          ch.close();
+        } catch (e) {}
+
+        function notifyOpener() {
+          if (!window.opener || window.opener.closed) return false;
+          try {
+            window.opener.postMessage(payload, location.origin);
+            return true;
+          } catch (e) {
+            return false;
+          }
+        }
+
+        function tryCloseTab() {
+          window.close();
+          setTimeout(function () {
+            window.close();
+          }, 300);
+        }
+
+        function showDone(html) {
+          document.body.innerHTML = html;
+        }
+
+        var hasOpener = notifyOpener();
+
+        if (hasOpener) {
+          tryCloseTab();
+          return;
+        }
+
+        /* 새 탭(모바일): 원래 탭에 알림 후 안내 화면 */
+        if (status === "success") {
+          showDone(
+            '<div class="done"><h1>결제가 완료되었습니다</h1><p>원래 탭으로 돌아가면 AI 일정이 자동으로 열립니다.<br>이 탭은 닫아도 됩니다.</p></div>',
+          );
+          tryCloseTab();
+          return;
+        }
+
+        if (status === "fail") {
+          showDone(
+            '<div class="done fail"><h1>결제에 실패했습니다</h1><p>' +
+              (message || "다시 시도해 주세요.") +
+              "</p></div>",
+          );
+          setTimeout(function () {
+            location.replace(
+              location.origin +
+                "/?payment=fail&pg=nicepay&message=" +
+                encodeURIComponent(message || "결제에 실패했습니다."),
+            );
+          }, 1800);
+          return;
+        }
+
+        location.replace(location.origin + "/?payment=fail&pg=nicepay");
+      })();
+    </script>
+  </body>
+</html>

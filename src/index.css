@@ -1640,6 +1640,55 @@ body {
   margin-top: 4px;
 }
 
+.payment-popup-wait {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 24px;
+  pointer-events: none;
+  background: transparent;
+}
+
+.payment-popup-wait-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 999px;
+  background: rgba(15, 20, 25, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  pointer-events: auto;
+}
+
+.payment-popup-wait-inner .loading-orbit {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.payment-popup-wait-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.payment-popup-wait-copy p {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #e8edf2;
+}
+
+.payment-popup-wait-copy span {
+  font-size: 0.75rem;
+  color: #9aa3ad;
+}
+
 #toss-payment-method {
   min-height: 120px;
 }

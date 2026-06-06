@@ -13,19 +13,27 @@ import { scoreDestinations } from "./utils/scoreDestinations";
 import { fetchTravelPlan } from "./utils/fetchTravelPlan";
 import {
   PLAN_PRICE,
+  completeNicepayReturn,
   completePaddleRedirect,
   completeRedirectPayment,
   consumePaymentReturnBootstrap,
+  peekNicepayResumeBootstrap,
   hasPlanAccess,
+  markAwaitingPayment,
   markPlanAccessGranted,
   clearPlanAccess,
+  PAYMENT_BC,
+  tryResumeNicepayPayment,
 } from "./utils/payment";
 import { isPaymentDemandTest, getPaymentProvider } from "./lib/paddleConfig";
+import { isMobileCheckout } from "./utils/nicepayPayment";
 import { buildRandomAnswers, tryUnlockAdminFromUrl } from "./utils/admin";
+import { trackPaymentDemand } from "./utils/trackPaymentDemand";
 
 const RANK_LABELS = ["🥇 1위", "🥈 2위", "🥉 3위"];
 const RANK_CLASSES = ["dest-rank--1", "dest-rank--2", "dest-rank--3"];
-const paymentBootstrap = consumePaymentReturnBootstrap();
+const paymentBootstrap =
+  consumePaymentReturnBootstrap() ?? peekNicepayResumeBootstrap();
 
 function scrollToPlans() {
   requestAnimationFrame(() => {
@@ -50,10 +58,12 @@ export default function App() {
     paymentBootstrap?.planLoading ?? false
   );
   const [planError, setPlanError] = useState(paymentBootstrap?.planError ?? null);
+  const [paymentPopupOpen, setPaymentPopupOpen] = useState(false);
   const [hasPaid, setHasPaid] = useState(() => {
     if (
       paymentBootstrap?.pendingPayment ||
-      paymentBootstrap?.pendingPaddleTransaction
+      paymentBootstrap?.pendingPaddleTransaction ||
+      paymentBootstrap?.pendingNicepayOrder
     ) {
       return true;
     }
@@ -65,6 +75,17 @@ export default function App() {
   const pendingPaddleRef = useRef(
     paymentBootstrap?.pendingPaddleTransaction ?? null,
   );
+  const pendingNicepayRef = useRef(
+    paymentBootstrap?.pendingNicepayOrder ?? null,
+  );
+  const answersRef = useRef(answers);
+  const destinationsRef = useRef(destinations);
+  const nicepayHandledRef = useRef(false);
+
+  useEffect(() => {
+    answersRef.current = answers;
+    destinationsRef.current = destinations;
+  }, [answers, destinations]);
 
   const progress = ((current + 1) / questions.length) * 100;
   const q = questions[current];
@@ -81,6 +102,146 @@ export default function App() {
   }, [phase, hasPaid, planLoading]);
 
   useEffect(() => {
+    async function finalizeNicepay(order) {
+      if (nicepayHandledRef.current) return;
+      nicepayHandledRef.current = true;
+      setPhase("result");
+      setPlanLoading(true);
+      setPlanError(null);
+      try {
+        const result = await completeNicepayReturn(order, {
+          destinations: destinationsRef.current,
+          answers: answersRef.current,
+        });
+        trackPaymentDemand("complete");
+        setHasPaid(true);
+        setPaymentPopupOpen(false);
+        if (result.destinations?.length) setDestinations(result.destinations);
+        if (result.answers?.length) setAnswers(result.answers);
+        await loadAllPlansForDests(result.destinations, result.answers ?? []);
+        scrollToPlans();
+      } catch {
+        nicepayHandledRef.current = false;
+        setPlanLoading(false);
+        setPlanError("결제 확인에 실패했습니다. 다시 시도해주세요.");
+      }
+    }
+
+    async function onNicepayMessage(e) {
+      if (e.origin !== window.location.origin) return;
+      const data = e.data;
+      if (data?.type !== "mytravel-nicepay") return;
+      if (data.status !== "success" || !data.orderId) return;
+      await finalizeNicepay({
+        orderId: data.orderId,
+        amount: data.amount || PLAN_PRICE,
+      });
+    }
+
+    window.addEventListener("message", onNicepayMessage);
+
+    let bc;
+    try {
+      bc = new BroadcastChannel(PAYMENT_BC);
+      bc.onmessage = (e) => {
+        const data = e.data;
+        if (data?.type !== "mytravel-nicepay") return;
+        if (data.status !== "success" || !data.orderId) return;
+        finalizeNicepay({
+          orderId: data.orderId,
+          amount: data.amount || PLAN_PRICE,
+        });
+      };
+    } catch {
+      /* ignore */
+    }
+
+    return () => {
+      window.removeEventListener("message", onNicepayMessage);
+      bc?.close();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (phase !== "result" || hasPaid) return;
+
+    if (hasPlanAccess()) {
+      setHasPaid(true);
+      setPlanLoading(true);
+      loadAllPlansForDests(destinationsRef.current, answersRef.current);
+      return;
+    }
+
+    async function resumeAfterPayment() {
+      if (nicepayHandledRef.current) return;
+      const result = await tryResumeNicepayPayment({
+        destinations: destinationsRef.current,
+        answers: answersRef.current,
+      });
+      if (!result) return;
+      nicepayHandledRef.current = true;
+      setPlanLoading(true);
+      setPlanError(null);
+      try {
+        trackPaymentDemand("complete");
+        setHasPaid(true);
+        setPaymentPopupOpen(false);
+        if (result.destinations?.length) setDestinations(result.destinations);
+        if (result.answers?.length) setAnswers(result.answers);
+        await loadAllPlansForDests(result.destinations, result.answers ?? []);
+        scrollToPlans();
+      } catch {
+        nicepayHandledRef.current = false;
+        setPlanLoading(false);
+        setPlanError("결제 확인에 실패했습니다. 다시 시도해주세요.");
+      }
+    }
+
+    resumeAfterPayment();
+    window.addEventListener("focus", resumeAfterPayment);
+    document.addEventListener("visibilitychange", resumeAfterPayment);
+
+    function onStorage(e) {
+      if (e.key !== "mytravel-nicepay-return" || !e.newValue) return;
+      resumeAfterPayment();
+    }
+    window.addEventListener("storage", onStorage);
+
+    return () => {
+      window.removeEventListener("focus", resumeAfterPayment);
+      document.removeEventListener("visibilitychange", resumeAfterPayment);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [phase, hasPaid]);
+
+  useEffect(() => {
+    const nicepayOrder = pendingNicepayRef.current;
+    if (nicepayOrder) {
+      pendingNicepayRef.current = null;
+      if (nicepayHandledRef.current) return;
+      nicepayHandledRef.current = true;
+      setPhase("result");
+      completeNicepayReturn(nicepayOrder, {
+        destinations: destinationsRef.current,
+        answers: answersRef.current,
+      })
+        .then(async (result) => {
+          trackPaymentDemand("complete");
+          setHasPaid(true);
+          setPaymentPopupOpen(false);
+          if (result.destinations?.length) setDestinations(result.destinations);
+          if (result.answers?.length) setAnswers(result.answers);
+          await loadAllPlansForDests(result.destinations, result.answers ?? []);
+          scrollToPlans();
+        })
+        .catch(() => {
+          nicepayHandledRef.current = false;
+          setPlanLoading(false);
+          setPlanError("결제 확인에 실패했습니다. 다시 시도해주세요.");
+        });
+      return;
+    }
+
     const paddleTxn = pendingPaddleRef.current;
     if (paddleTxn) {
       pendingPaddleRef.current = null;
@@ -362,7 +523,36 @@ export default function App() {
         </PhaseView>
       )}
 
-      {phase === "result" && destinations[0] && (
+      {phase === "result" && destinations.length === 0 && planLoading && (
+        <PhaseView>
+          <div className="loading">
+            <div className="loading-orbit" />
+            <div className="loading-dots" aria-hidden>
+              <span />
+              <span />
+              <span />
+            </div>
+            <div className="loading-text">
+              결제 확인 중
+              <br />
+              <span className="loading-sub">AI 일정을 준비하고 있어요</span>
+            </div>
+          </div>
+        </PhaseView>
+      )}
+
+      {phase === "result" && destinations.length === 0 && !planLoading && planError && (
+        <PhaseView>
+          <div className="result">
+            <div className="plan-error">{planError}</div>
+            <button type="button" className="payment-panel-btn" onClick={restart}>
+              처음부터 다시하기
+            </button>
+          </div>
+        </PhaseView>
+      )}
+
+      {phase === "result" && destinations.length > 0 && (
         <PhaseView>
         <div className={`result${hasPaid ? " result--unlocked" : ""}`}>
           <div className="result-eyebrow">Travel Match Result</div>
@@ -383,6 +573,11 @@ export default function App() {
                 <>
                   숨은 국내 여행지 TOP 3 — 토스 QR{" "}
                   <strong>{PLAN_PRICE.toLocaleString()}원</strong> 송금 후 AI 일정 3종
+                </>
+              ) : getPaymentProvider() === "portone" ? (
+                <>
+                  숨은 국내 여행지 TOP 3 —{" "}
+                  <strong>{PLAN_PRICE.toLocaleString()}원</strong> 결제 후 AI 일정 3종
                 </>
               ) : (
                 <>
@@ -438,7 +633,28 @@ export default function App() {
               destinations={top3}
               answers={answers}
               onPaid={handlePaymentComplete}
+              onPayingChange={setPaymentPopupOpen}
             />
+          )}
+
+          {paymentPopupOpen && !hasPaid && (
+            <div className="payment-popup-wait" role="status" aria-live="polite">
+              <div className="payment-popup-wait-inner">
+                <div className="loading-orbit" />
+                <div className="payment-popup-wait-copy">
+                  <p>
+                    {isMobileCheckout()
+                      ? "새 탭에서 결제를 완료해 주세요"
+                      : "팝업에서 결제를 완료해 주세요"}
+                  </p>
+                  <span>
+                    {isMobileCheckout()
+                      ? "이 탭으로 돌아오면 AI 일정이 열립니다"
+                      : "결과 화면은 그대로 유지됩니다"}
+                  </span>
+                </div>
+              </div>
+            </div>
           )}
 
           {hasPaid && (

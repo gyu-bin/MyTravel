@@ -2,5 +2,6 @@ node_modules
 dist
 .env
 .env.local
+.mytravel-orders.json
 .DS_Store
 .vercel

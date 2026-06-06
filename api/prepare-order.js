@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: "Method not allowed" });
   }
 
-  const { orderId, amount } = req.body ?? {};
+  const { orderId, amount, answers, destinations } = req.body ?? {};
 
   if (!orderId || typeof orderId !== "string") {
     return res.status(400).json({ ok: false, error: "orderId가 필요합니다." });
@@ -20,7 +20,11 @@ export default async function handler(req, res) {
     });
   }
 
-  savePendingOrder(orderId, PLAN_PRICE);
+  const session = {};
+  if (Array.isArray(answers)) session.answers = answers;
+  if (Array.isArray(destinations)) session.destinations = destinations;
+
+  await savePendingOrder(orderId, PLAN_PRICE, session);
 
   return res.status(200).json({ ok: true, orderId, amount: PLAN_PRICE });
 }

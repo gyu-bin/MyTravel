@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import {
+  getNicepayReturnUrl,
   getPaymentProvider,
+  getPortoneClientId,
   getQrImageUrl,
   isPaymentDemandTest,
   isPaymentMock,
@@ -10,14 +12,18 @@ import {
   completeQrPayment,
   createOrderId,
   openPaddleCheckout,
+  prepareOrder,
   registerPaddleCheckoutHandler,
   runMockPayment,
+  formatNicepayGoodsName,
+  markAwaitingPayment,
   savePaymentSession,
 } from "../utils/payment.js";
+import { openNicepayCheckout } from "../utils/nicepayPayment.js";
 import { openTossQrPaymentWindow } from "../utils/tossQrPayment.js";
 import { trackPaymentDemand } from "../utils/trackPaymentDemand.js";
 
-export default function PaymentPanel({ destinations, answers, onPaid }) {
+export default function PaymentPanel({ destinations, answers, onPaid, onPayingChange }) {
   const [qrOpen, setQrOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -26,6 +32,7 @@ export default function PaymentPanel({ destinations, answers, onPaid }) {
   const demandTest = isPaymentDemandTest();
   const top3 = destinations.slice(0, 3);
   const qrImage = getQrImageUrl();
+  const portoneClientId = getPortoneClientId();
 
   useEffect(() => {
     registerPaddleCheckoutHandler(onPaid);
@@ -58,6 +65,30 @@ export default function PaymentPanel({ destinations, answers, onPaid }) {
         await runMockPayment();
         trackPaymentDemand("complete");
         onPaid?.();
+        return;
+      }
+
+      if (provider === "portone") {
+        await prepareOrder(orderId, { answers, destinations: top3 });
+        markAwaitingPayment({
+          orderId,
+          amount: PLAN_PRICE,
+          answers,
+          destinations: top3,
+        });
+        onPayingChange?.(true);
+        setBusy(false);
+        const result = await openNicepayCheckout({
+          clientId: portoneClientId,
+          orderId,
+          amount: PLAN_PRICE,
+          goodsName: formatNicepayGoodsName(top3),
+          returnUrl: getNicepayReturnUrl(),
+        });
+        onPayingChange?.(false);
+        if (result?.error) {
+          setError(result.error);
+        }
         return;
       }
 
@@ -101,6 +132,28 @@ export default function PaymentPanel({ destinations, answers, onPaid }) {
     }
   }
 
+  function paymentFeatureText() {
+    if (provider === "portone") {
+      return "카드·간편결제로 안전하게 결제해요";
+    }
+    if (provider === "toss-auto") {
+      return "토스 QR 결제 후 자동으로 일정이 열려요";
+    }
+    return `토스 QR로 ${PLAN_PRICE.toLocaleString()}원 송금`;
+  }
+
+  function paymentButtonLabel() {
+    if (busy && !qrOpen) return "여는 중…";
+    if (demandTest) return "AI 일정 무료로 보기";
+    if (provider === "portone") {
+      return `${PLAN_PRICE.toLocaleString()}원 · 결제하기`;
+    }
+    if (provider === "toss-auto") {
+      return `${PLAN_PRICE.toLocaleString()}원 · 토스페이 QR`;
+    }
+    return `${PLAN_PRICE.toLocaleString()}원 · QR 보기`;
+  }
+
   return (
     <>
       <section className="payment-panel" aria-label="결제">
@@ -113,11 +166,7 @@ export default function PaymentPanel({ destinations, answers, onPaid }) {
             <ul className="payment-panel-features">
               <li>1·2·3위 맞춤 일정 각 1종</li>
               <li>일자별 코스 · 현지 꿀팁 · 맛집</li>
-              <li>
-                {provider === "toss-auto"
-                  ? "토스 QR 결제 후 자동으로 일정이 열려요"
-                  : `토스 QR로 ${PLAN_PRICE.toLocaleString()}원 송금`}
-              </li>
+              <li>{paymentFeatureText()}</li>
             </ul>
           </div>
 
@@ -135,13 +184,7 @@ export default function PaymentPanel({ destinations, answers, onPaid }) {
             onClick={handleOpenCheckout}
             disabled={busy && !qrOpen}
           >
-            {busy && !qrOpen
-              ? "여는 중…"
-              : demandTest
-                ? "AI 일정 무료로 보기"
-                : provider === "toss-auto"
-                  ? `${PLAN_PRICE.toLocaleString()}원 · 토스페이 QR`
-                  : `${PLAN_PRICE.toLocaleString()}원 · QR 보기`}
+            {paymentButtonLabel()}
           </button>
         </div>
       </section>

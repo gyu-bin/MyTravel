@@ -11,8 +11,9 @@ export function isPaymentMock() {
   );
 }
 
-/** QR 이미지 (토스 송금 QR — public 또는 URL) */
+/** QR 이미지 (포트원 설정 시 사용 안 함) */
 export function getQrImageUrl() {
+  if (isPortoneConfigured()) return "";
   const custom = import.meta.env.VITE_TOSS_QR_IMAGE?.trim();
   if (custom) return custom;
   return "/toss-payment-qr.png";
@@ -50,6 +51,10 @@ export function isTossApiClientKey(key = getTossClientKey()) {
 export function getPaymentProvider() {
   if (isPaymentMock()) return "mock";
 
+  if (isPortoneConfigured()) {
+    return "portone";
+  }
+
   const clientKey = getTossClientKey();
   const hasTossApi = isTossApiClientKey(clientKey);
 
@@ -58,7 +63,7 @@ export function getPaymentProvider() {
     return "toss-auto";
   }
 
-  // 기본: 정적 QR 모달 + 송금 완료 버튼
+  // 정적 QR 모달 + 송금 완료 버튼
   if (getQrImageUrl()) {
     return "qr";
   }
@@ -96,4 +101,22 @@ export function getPaddleSuccessUrl() {
 
 export function getTossQrVariantKey() {
   return import.meta.env.VITE_TOSS_QR_VARIANT_KEY?.trim() || "DEFAULT";
+}
+
+/** 포트원(나이스페이) 클라이언트 키 — 브라우저 공개 */
+export function getPortoneClientId() {
+  return (
+    import.meta.env.VITE_PORTONE_CLIENT_KEY?.trim() ||
+    import.meta.env.VITE_NICEPAY_CLIENT_ID?.trim() ||
+    ""
+  );
+}
+
+export function isPortoneConfigured() {
+  return Boolean(getPortoneClientId());
+}
+
+export function getNicepayReturnUrl() {
+  if (typeof window === "undefined") return "";
+  return `${window.location.origin}/api/nicepay-return`;
 }
